@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Car Parking</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#28a745" />
+  <link rel="icon" href="icon-192.png" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+    }
+    .container {
+      width: 500px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #ccc;
+    }
+    h1 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, button {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .parking-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .slot {
+      padding: 15px;
+      background-color: #eee;
+      text-align: center;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .slot.selected {
+      background-color: #007bff;
+      color: white;
+    }
+    .slot.booked {
+      background-color: #dc3545;
+      color: white;
+      cursor: not-allowed;
+    }
+    #message {
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Book a Parking Slot</h1>
+    <form id="bookingForm">
+      <label for="date">Date:</label>
+      <input type="date" id="date" required />
+      <label for="time">Time:</label>
+      <input type="time" id="time" required />
+      <label>Select a Parking Slot:</label>
+      <div class="parking-grid" id="parkingGrid"></div>
+      <button type="submit">Book Slot</button>
+      <p id="message"></p>
+    </form>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('✅ Service Worker Registered'))
+        .catch((error) => console.log('❌ Service Worker Failed:', error));
+    }
+  </script>
+</body>
+</html>
