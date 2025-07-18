@@ -1,70 +1,77 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Car Parking</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#28a745" />
-  <link rel="icon" href="icon-192.png" />
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f0f0f0;
+      margin: 0;
+      padding: 0;
     }
     .container {
-      width: 500px;
-      margin: 30px auto;
+      max-width: 400px;
+      margin: 40px auto;
       background: white;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 0 15px #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h1 {
       text-align: center;
+      color: #333;
     }
     label {
       display: block;
-      margin-top: 10px;
+      margin-top: 15px;
     }
     input, button {
       width: 100%;
-      padding: 8px;
-      margin: 8px 0;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
     }
     button {
       background-color: #28a745;
       color: white;
       border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
     }
     button:hover {
       background-color: #218838;
     }
     .parking-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
     }
     .slot {
-      padding: 15px;
+      padding: 20px 40px;
       background-color: #eee;
+      border: 2px solid #ccc;
+      border-radius: 8px;
       text-align: center;
-      border: 1px solid #ccc;
+      font-weight: bold;
       cursor: pointer;
-      border-radius: 5px;
+      user-select: none;
     }
     .slot.selected {
       background-color: #007bff;
+      border-color: #007bff;
       color: white;
     }
     .slot.booked {
       background-color: #dc3545;
+      border-color: #dc3545;
       color: white;
       cursor: not-allowed;
     }
     #message {
+      margin-top: 15px;
       text-align: center;
       font-weight: bold;
     }
@@ -72,25 +79,56 @@
 </head>
 <body>
   <div class="container">
-    <h1>Book a Parking Slot</h1>
+    <h1>Smart Parking System</h1>
     <form id="bookingForm">
-      <label for="date">Date:</label>
+      <label for="date">Select Date:</label>
       <input type="date" id="date" required />
-      <label for="time">Time:</label>
+
+      <label for="time">Select Time:</label>
       <input type="time" id="time" required />
-      <label>Select a Parking Slot:</label>
-      <div class="parking-grid" id="parkingGrid"></div>
+
+      <label>Select Slot:</label>
+      <div class="parking-grid" id="parkingGrid">
+        <div class="slot" id="slot1">Slot 1</div>
+      </div>
+
       <button type="submit">Book Slot</button>
       <p id="message"></p>
     </form>
   </div>
-  <script src="script.js"></script>
+
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log('✅ Service Worker Registered'))
-        .catch((error) => console.log('❌ Service Worker Failed:', error));
-    }
+    const slot = document.getElementById("slot1");
+    const form = document.getElementById("bookingForm");
+    const message = document.getElementById("message");
+
+    let selected = false;
+    let booked = false;
+
+    slot.addEventListener("click", () => {
+      if (booked) return;
+      selected = !selected;
+      slot.classList.toggle("selected", selected);
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      if (!selected || booked) {
+        message.textContent = "❌ Please select the slot before booking.";
+        message.style.color = "red";
+        return;
+      }
+
+      slot.classList.remove("selected");
+      slot.classList.add("booked");
+      slot.textContent = "Booked";
+      booked = true;
+      selected = false;
+
+      message.textContent = "✅ Slot successfully booked!";
+      message.style.color = "green";
+    });
   </script>
 </body>
 </html>
