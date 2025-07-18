@@ -1,5 +1,5 @@
 
-const slots = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"];
+const slots = ["A1"];
 const bookings = [];
 let selectedSlot = null;
 
