@@ -1,20 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Car Parking</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#28a745" />
-  <link rel="icon" href="icon-192.png" />
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f0f0f0;
     }
     .container {
-      width: 500px;
+      width: 90%;
+      max-width: 400px;
       margin: 30px auto;
       background: white;
       padding: 20px;
@@ -23,6 +20,7 @@
     }
     h1 {
       text-align: center;
+      color: #333;
     }
     label {
       display: block;
@@ -32,41 +30,46 @@
       width: 100%;
       padding: 8px;
       margin: 8px 0;
+      font-size: 16px;
     }
     button {
       background-color: #28a745;
       color: white;
       border: none;
+      border-radius: 5px;
     }
     button:hover {
       background-color: #218838;
     }
     .parking-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
     }
     .slot {
-      padding: 15px;
+      padding: 20px;
       background-color: #eee;
       text-align: center;
-      border: 1px solid #ccc;
+      border: 2px solid #ccc;
+      border-radius: 8px;
       cursor: pointer;
-      border-radius: 5px;
+      font-weight: bold;
     }
     .slot.selected {
       background-color: #007bff;
       color: white;
+      border-color: #007bff;
     }
     .slot.booked {
       background-color: #dc3545;
       color: white;
       cursor: not-allowed;
+      border-color: #dc3545;
     }
     #message {
       text-align: center;
       font-weight: bold;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -76,21 +79,60 @@
     <form id="bookingForm">
       <label for="date">Date:</label>
       <input type="date" id="date" required />
+
       <label for="time">Time:</label>
       <input type="time" id="time" required />
+
       <label>Select a Parking Slot:</label>
       <div class="parking-grid" id="parkingGrid"></div>
+
       <button type="submit">Book Slot</button>
       <p id="message"></p>
     </form>
   </div>
-  <script src="script.js"></script>
+
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log('✅ Service Worker Registered'))
-        .catch((error) => console.log('❌ Service Worker Failed:', error));
-    }
+    const parkingGrid = document.getElementById('parkingGrid');
+    const message = document.getElementById('message');
+    let selectedSlot = null;
+    let slotBooked = false;
+
+    // Create a single parking slot
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.textContent = 'Slot 1';
+
+    slot.addEventListener('click', () => {
+      if (slotBooked) return;
+
+      if (selectedSlot) {
+        selectedSlot.classList.remove('selected');
+      }
+
+      slot.classList.add('selected');
+      selectedSlot = slot;
+    });
+
+    parkingGrid.appendChild(slot);
+
+    document.getElementById('bookingForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      if (!selectedSlot) {
+        message.textContent = 'Please select the slot first.';
+        message.style.color = 'red';
+        return;
+      }
+
+      selectedSlot.classList.remove('selected');
+      selectedSlot.classList.add('booked');
+      selectedSlot.textContent = 'Booked';
+      slotBooked = true;
+      selectedSlot = null;
+
+      message.textContent = '✅ Slot successfully booked!';
+      message.style.color = 'green';
+    });
   </script>
 </body>
 </html>
