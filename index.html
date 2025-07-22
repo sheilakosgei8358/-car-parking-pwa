@@ -26,9 +26,9 @@
     }
   </style>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js"></script>
+  <!-- ✅ Firebase SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 
@@ -37,50 +37,8 @@
     <h3 id="slotDisplay" class="status">Slot: loading...</h3>
   </div>
 
-  <script type="module">
-    // ✅ 1. Replace with your Firebase project config
-    const firebaseConfig = {
-      apiKey: "<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Parking System</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #e9f5f1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .card {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    .status {
-      font-size: 1.8rem;
-      color: #28a745;
-    }
-  </style>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js"></script>
-</head>
-<body>
-
-  <div class="card">
-    <h2>🅿️ Smart Parking Slot</h2>
-    <h3 id="slotDisplay" class="status">Slot: loading...</h3>
-  </div>
-
-  <script type="module">
-    // ✅ 1. Replace with your Firebase project config
+  <script>
+    // ✅ Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
       authDomain: "smartparkingsystem-55a05.firebaseapp.com",
@@ -91,16 +49,13 @@
       appId: "1:200855735860:web:369dd1116fc4ab21148461"
     };
 
-    // ✅ 2. Initialize Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+    // ✅ Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // ✅ 3. Realtime listener for slot status
-    const slotRef = ref(db, 'slot_status');
-    onValue(slotRef, (snapshot) => {
+    // ✅ Listen for slot updates
+    const slotRef = db.ref("slot_status");
+    slotRef.on("value", (snapshot) => {
       const data = snapshot.val();
       document.getElementById("slotDisplay").textContent = `Slot: ${data.slot}`;
     });
@@ -108,4 +63,3 @@
 
 </body>
 </html>
-
