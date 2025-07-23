@@ -3,9 +3,44 @@
 <head>
   <title>Smart Parking Slot Booking</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    input, button { margin: 10px 0; padding: 8px; width: 100%; max-width: 300px; }
-    #status { margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    input, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #status {
+      margin-top: 30px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -13,7 +48,7 @@
   <h2>🚗 Book Your Parking Slot</h2>
 
   <label for="name">Your Name:</label>
-  <input type="text" id="name" required>
+  <input type="text" id="name" placeholder="e.g. Sheila" required>
 
   <label for="arrival">Arrival Time (Local):</label>
   <input type="datetime-local" id="arrival" required>
@@ -21,16 +56,41 @@
   <button onclick="bookSlot()">Book Slot</button>
   <button onclick="cancelSlot()">Cancel Booking</button>
 
-  <div id="status">Slot status: <span id="slotStatus">Loading...</span></div>
+  <div id="status">
+    <strong>Slot Info:</strong>
+    <div id="slotStatus">Loading...</div>
+  </div>
 
   <script>
-    const firebaseURL = "https://YOUR_FIREBASE_URL/slot1.json";
+    const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/slot1.json";
 
     async function fetchSlotStatus() {
-      const res = await fetch(firebaseURL);
-      const data = await res.json();
-      const status = data?.status || "free";
-      document.getElementById("slotStatus").textContent = status;
+      try {
+        const res = await fetch(firebaseURL);
+        const data = await res.json();
+
+        const status = data?.status || "unknown";
+        const bookedBy = data?.bookedBy || "";
+        const arrivalTime = data?.arrivalTime || "";
+
+        let readableTime = "";
+        if (arrivalTime) {
+          const dt = new Date(parseInt(arrivalTime) * 1000);
+          readableTime = dt.toLocaleString();
+        }
+
+        let display = `Status: <strong>${status}</strong>`;
+        if (status === "booked") {
+          display += `<br>Booked by: <strong>${bookedBy}</strong>`;
+          display += `<br>Arrival Time: <strong>${readableTime}</strong>`;
+        }
+
+        document.getElementById("slotStatus").innerHTML = display;
+
+      } catch (err) {
+        document.getElementById("slotStatus").textContent = "⚠️ Error loading data.";
+        console.error("Error fetching slot status:", err);
+      }
     }
 
     async function bookSlot() {
@@ -42,7 +102,6 @@
         return;
       }
 
-      // Convert to Unix timestamp
       const arrivalUnix = Math.floor(new Date(arrival).getTime() / 1000);
 
       const bookingData = {
@@ -51,7 +110,6 @@
         arrivalTime: arrivalUnix.toString()
       };
 
-      // Patch to Firebase
       const res = await fetch(firebaseURL, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -59,10 +117,10 @@
       });
 
       if (res.ok) {
-        alert("Slot booked successfully!");
+        alert("✅ Slot booked successfully!");
         fetchSlotStatus();
       } else {
-        alert("Booking failed. Try again.");
+        alert("❌ Booking failed. Try again.");
       }
     }
 
@@ -78,10 +136,10 @@
       });
 
       if (res.ok) {
-        alert("Booking canceled.");
+        alert("🚫 Booking canceled.");
         fetchSlotStatus();
       } else {
-        alert("Cancellation failed.");
+        alert("❌ Cancellation failed.");
       }
     }
 
@@ -91,5 +149,3 @@
 
 </body>
 </html>
-
-
