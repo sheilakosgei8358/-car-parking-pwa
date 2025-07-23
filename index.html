@@ -19,14 +19,30 @@
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
       text-align: center;
+      width: 300px;
     }
     .status {
       font-size: 1.8rem;
       color: #28a745;
     }
+    input, button {
+      margin: 0.5rem 0;
+      padding: 0.4rem;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button.cancel {
+      background-color: #dc3545;
+    }
   </style>
 
-  <!-- ✅ Firebase SDK v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
@@ -35,10 +51,15 @@
   <div class="card">
     <h2>🅿️ Smart Parking Slot</h2>
     <h3 id="slotDisplay" class="status">Slot: loading...</h3>
+
+    <input type="text" id="name" placeholder="Your name" />
+    <input type="time" id="arrivalTime" placeholder="Arrival time" />
+
+    <button onclick="bookSlot()">Book Slot</button>
+    <button class="cancel" onclick="cancelSlot()">Cancel Booking</button>
   </div>
 
   <script>
-    // ✅ Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
       authDomain: "smartparkingsystem-55a05.firebaseapp.com",
@@ -49,16 +70,55 @@
       appId: "1:200855735860:web:369dd1116fc4ab21148461"
     };
 
-    // ✅ Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    // ✅ Listen for slot updates
     const slotRef = db.ref("slot_status");
+
+    // 🔄 Listen for changes
     slotRef.on("value", (snapshot) => {
       const data = snapshot.val();
-      document.getElementById("slotDisplay").textContent = `Slot: ${data.slot}`;
+      if (data && data.slot === "booked") {
+        document.getElementById("slotDisplay").textContent = `Slot: Booked by ${data.name}`;
+      } else {
+        document.getElementById("slotDisplay").textContent = `Slot: Free`;
+      }
+
+      // ⏳ Check time logic
+      const now = new Date();
+      if (data?.arrivalTime) {
+        const current = now.getHours() * 60 + now.getMinutes();
+        const [hh, mm] = data.arrivalTime.split(":").map(Number);
+        const booking = hh * 60 + mm;
+
+        if (current > booking + 10 && data.slot === "booked") {
+          slotRef.set({ slot: "free" }); // Auto-release after 10 mins
+        }
+      }
     });
+
+    // ✅ Book slot
+    function bookSlot() {
+      const name = document.getElementById("name").value;
+      const arrivalTime = document.getElementById("arrivalTime").value;
+
+      if (!name || !arrivalTime) {
+        alert("Please enter your name and arrival time.");
+        return;
+      }
+
+      slotRef.set({
+        slot: "booked",
+        name: name,
+        arrivalTime: arrivalTime
+      });
+    }
+
+    // ❌ Cancel slot
+    function cancelSlot() {
+      slotRef.set({
+        slot: "free"
+      });
+    }
   </script>
 
 </body>
