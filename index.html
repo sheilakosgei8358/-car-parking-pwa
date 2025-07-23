@@ -1,32 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Parking System</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Parking</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f0f4f7;
-      padding: 2rem;
+      font-family: Arial;
+      background: #f0fdf4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     .card {
       background: white;
       padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      max-width: 400px;
-      margin: auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
     }
     .status {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      color: #2e7d32;
     }
     input, button {
-      display: block;
-      width: 100%;
+      margin: 0.4rem;
       padding: 0.5rem;
-      margin: 0.5rem 0;
     }
   </style>
 
@@ -36,13 +36,16 @@
 <body>
 
   <div class="card">
-    <h2>Smart Parking System</h2>
-    <div class="status" id="slotStatus">Loading slot status...</div>
+    <h2>🅿️ Smart Parking</h2>
+    <div id="statusDisplay" class="status">Loading...</div>
 
-    <input type="text" id="name" placeholder="Your Name">
-    <input type="time" id="arrivalTime">
-    <button onclick="bookSlot()">Book Slot</button>
-    <button onclick="cancelBooking()">Cancel Booking</button>
+    <div id="bookForm">
+      <input type="text" id="name" placeholder="Your Name" />
+      <input type="datetime-local" id="arrivalTime" />
+      <button onclick="bookSlot()">Book Slot</button>
+    </div>
+
+    <button onclick="cancelBooking()" style="background:red;color:white;">Cancel Booking</button>
   </div>
 
   <script>
@@ -55,41 +58,38 @@
       messagingSenderId: "200855735860",
       appId: "1:200855735860:web:369dd1116fc4ab21148461"
     };
-    
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
     const slotRef = db.ref("slot_status");
 
     slotRef.on("value", snapshot => {
       const data = snapshot.val();
-      if (!data) return;
-
-      const status = data.slot;
-      document.getElementById("slotStatus").textContent = `Slot is currently: ${status}`;
+      document.getElementById("statusDisplay").textContent = `Slot: ${data.slot.toUpperCase()} (Name: ${data.name || "N/A"})`;
     });
 
     function bookSlot() {
       const name = document.getElementById("name").value;
-      const arrivalTime = document.getElementById("arrivalTime").value;
-      if (!name || !arrivalTime) return alert("Fill name and arrival time.");
+      const arrivalInput = document.getElementById("arrivalTime").value;
+      const arrivalTimestamp = new Date(arrivalInput).getTime() / 1000;
 
-      const now = Math.floor(Date.now() / 1000);
-      const arrivalParts = arrivalTime.split(":");
-      const today = new Date();
-      const arrivalTimestamp = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(arrivalParts[0]), parseInt(arrivalParts[1])).getTime() / 1000;
+      if (!name || !arrivalInput) {
+        alert("Please enter your name and arrival time.");
+        return;
+      }
 
       db.ref("slot_status").set({
         slot: "booked",
-        name,
-        arrival: arrivalTimestamp,
-        bookedAt: now
+        name: name,
+        arrival: arrivalTimestamp
       });
     }
 
     function cancelBooking() {
       db.ref("slot_status").set({
-        slot: "free"
+        slot: "free",
+        name: "",
+        arrival: 0
       });
     }
   </script>
