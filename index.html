@@ -7,30 +7,27 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4fdfc;
+      background-color: #f0f9f8;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
+      padding: 2rem;
     }
     .card {
       background: white;
       padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
       text-align: center;
+      margin-bottom: 1rem;
     }
     input, button {
-      margin: 5px 0;
-      padding: 10px;
-      width: 90%;
-      font-size: 1rem;
+      margin: 0.5rem;
+      padding: 0.5rem;
     }
     .status {
       font-size: 1.5rem;
-      margin: 1rem 0;
+      margin-bottom: 1rem;
     }
   </style>
 
@@ -40,11 +37,10 @@
 <body>
 
   <div class="card">
-    <h2>🅿️ Smart Parking</h2>
-    <div class="status" id="slotStatus">Loading slot...</div>
-
-    <input type="text" id="userName" placeholder="Your Name" />
-    <input type="datetime-local" id="arrivalTime" />
+    <h2>🅿️ Smart Parking Slot</h2>
+    <div class="status" id="slotDisplay">Loading slot status...</div>
+    <input id="name" type="text" placeholder="Your Name" />
+    <input id="arrival" type="time" />
     <button onclick="bookSlot()">Book Slot</button>
     <button onclick="cancelSlot()">Cancel Booking</button>
   </div>
@@ -62,44 +58,24 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
     const slotRef = db.ref("slot_status");
 
-    slotRef.on("value", snapshot => {
+    slotRef.on("value", (snapshot) => {
       const data = snapshot.val();
-      const status = data.slot || "unknown";
-      document.getElementById("slotStatus").textContent = `Slot: ${status.toUpperCase()}`;
-
-      // Auto-cancel if booking is overdue
-      if (status === "booked" && data.arrivalTime) {
-        const now = new Date();
-        const arrival = new Date(data.arrivalTime);
-        if (now > arrival) {
-          slotRef.set({ slot: "free" });
-        }
-      }
+      document.getElementById("slotDisplay").textContent = `Slot: ${data.slot || "unknown"}`;
     });
 
     function bookSlot() {
-      const name = document.getElementById("userName").value;
-      const time = document.getElementById("arrivalTime").value;
-      if (!name || !time) {
-        alert("Please enter your name and arrival time.");
-        return;
-      }
-
-      slotRef.set({
-        slot: "booked",
-        name: name,
-        arrivalTime: time
-      });
+      const name = document.getElementById("name").value;
+      const arrival = document.getElementById("arrival").value;
+      if (!name || !arrival) return alert("Enter your name and arrival time");
+      slotRef.set({ slot: "booked", name, arrival });
     }
 
     function cancelSlot() {
       slotRef.set({ slot: "free" });
     }
   </script>
+
 </body>
 </html>
-
-
