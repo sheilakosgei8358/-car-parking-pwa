@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #e9f5f1;
+      background-color: #f4fdfc;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -16,30 +16,21 @@
     .card {
       background: white;
       padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
       text-align: center;
-      width: 300px;
-    }
-    .status {
-      font-size: 1.8rem;
-      color: #28a745;
     }
     input, button {
-      margin: 0.5rem 0;
-      padding: 0.4rem;
-      width: 100%;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      margin: 5px 0;
+      padding: 10px;
+      width: 90%;
+      font-size: 1rem;
     }
-    button {
-      background-color: #28a745;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button.cancel {
-      background-color: #dc3545;
+    .status {
+      font-size: 1.5rem;
+      margin: 1rem 0;
     }
   </style>
 
@@ -49,14 +40,13 @@
 <body>
 
   <div class="card">
-    <h2>🅿️ Smart Parking Slot</h2>
-    <h3 id="slotDisplay" class="status">Slot: loading...</h3>
+    <h2>🅿️ Smart Parking</h2>
+    <div class="status" id="slotStatus">Loading slot...</div>
 
-    <input type="text" id="name" placeholder="Your name" />
-    <input type="time" id="arrivalTime" placeholder="Arrival time" />
-
+    <input type="text" id="userName" placeholder="Your Name" />
+    <input type="datetime-local" id="arrivalTime" />
     <button onclick="bookSlot()">Book Slot</button>
-    <button class="cancel" onclick="cancelSlot()">Cancel Booking</button>
+    <button onclick="cancelSlot()">Cancel Booking</button>
   </div>
 
   <script>
@@ -72,36 +62,28 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
     const slotRef = db.ref("slot_status");
 
-    // 🔄 Listen for changes
-    slotRef.on("value", (snapshot) => {
+    slotRef.on("value", snapshot => {
       const data = snapshot.val();
-      if (data && data.slot === "booked") {
-        document.getElementById("slotDisplay").textContent = `Slot: Booked by ${data.name}`;
-      } else {
-        document.getElementById("slotDisplay").textContent = `Slot: Free`;
-      }
+      const status = data.slot || "unknown";
+      document.getElementById("slotStatus").textContent = `Slot: ${status.toUpperCase()}`;
 
-      // ⏳ Check time logic
-      const now = new Date();
-      if (data?.arrivalTime) {
-        const current = now.getHours() * 60 + now.getMinutes();
-        const [hh, mm] = data.arrivalTime.split(":").map(Number);
-        const booking = hh * 60 + mm;
-
-        if (current > booking + 10 && data.slot === "booked") {
-          slotRef.set({ slot: "free" }); // Auto-release after 10 mins
+      // Auto-cancel if booking is overdue
+      if (status === "booked" && data.arrivalTime) {
+        const now = new Date();
+        const arrival = new Date(data.arrivalTime);
+        if (now > arrival) {
+          slotRef.set({ slot: "free" });
         }
       }
     });
 
-    // ✅ Book slot
     function bookSlot() {
-      const name = document.getElementById("name").value;
-      const arrivalTime = document.getElementById("arrivalTime").value;
-
-      if (!name || !arrivalTime) {
+      const name = document.getElementById("userName").value;
+      const time = document.getElementById("arrivalTime").value;
+      if (!name || !time) {
         alert("Please enter your name and arrival time.");
         return;
       }
@@ -109,17 +91,15 @@
       slotRef.set({
         slot: "booked",
         name: name,
-        arrivalTime: arrivalTime
+        arrivalTime: time
       });
     }
 
-    // ❌ Cancel slot
     function cancelSlot() {
-      slotRef.set({
-        slot: "free"
-      });
+      slotRef.set({ slot: "free" });
     }
   </script>
-
 </body>
 </html>
+
+
