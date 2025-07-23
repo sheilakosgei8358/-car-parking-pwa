@@ -1,98 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Parking</title>
+  <title>Smart Parking Slot Booking</title>
   <style>
-    body {
-      font-family: Arial;
-      background: #f0fdf4;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .card {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    .status {
-      font-size: 1.5rem;
-      color: #2e7d32;
-    }
-    input, button {
-      margin: 0.4rem;
-      padding: 0.5rem;
-    }
+    body { font-family: Arial; padding: 20px; }
+    input, button { margin: 10px 0; padding: 8px; width: 100%; max-width: 300px; }
+    #status { margin-top: 20px; }
   </style>
-
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 
-  <div class="card">
-    <h2>🅿️ Smart Parking</h2>
-    <div id="statusDisplay" class="status">Loading...</div>
+  <h2>🚗 Book Your Parking Slot</h2>
 
-    <div id="bookForm">
-      <input type="text" id="name" placeholder="Your Name" />
-      <input type="datetime-local" id="arrivalTime" />
-      <button onclick="bookSlot()">Book Slot</button>
-    </div>
+  <label for="name">Your Name:</label>
+  <input type="text" id="name" required>
 
-    <button onclick="cancelBooking()" style="background:red;color:white;">Cancel Booking</button>
-  </div>
+  <label for="arrival">Arrival Time (Local):</label>
+  <input type="datetime-local" id="arrival" required>
+
+  <button onclick="bookSlot()">Book Slot</button>
+  <button onclick="cancelSlot()">Cancel Booking</button>
+
+  <div id="status">Slot status: <span id="slotStatus">Loading...</span></div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
-      authDomain: "smartparkingsystem-55a05.firebaseapp.com",
-      databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
-      projectId: "smartparkingsystem-55a05",
-      storageBucket: "smartparkingsystem-55a05.appspot.com",
-      messagingSenderId: "200855735860",
-      appId: "1:200855735860:web:369dd1116fc4ab21148461"
-    };
+    const firebaseURL = "https://YOUR_FIREBASE_URL/slot1.json";
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const slotRef = db.ref("slot_status");
+    async function fetchSlotStatus() {
+      const res = await fetch(firebaseURL);
+      const data = await res.json();
+      const status = data?.status || "free";
+      document.getElementById("slotStatus").textContent = status;
+    }
 
-    slotRef.on("value", snapshot => {
-      const data = snapshot.val();
-      document.getElementById("statusDisplay").textContent = `Slot: ${data.slot.toUpperCase()} (Name: ${data.name || "N/A"})`;
-    });
+    async function bookSlot() {
+      const name = document.getElementById("name").value.trim();
+      const arrival = document.getElementById("arrival").value;
 
-    function bookSlot() {
-      const name = document.getElementById("name").value;
-      const arrivalInput = document.getElementById("arrivalTime").value;
-      const arrivalTimestamp = new Date(arrivalInput).getTime() / 1000;
-
-      if (!name || !arrivalInput) {
-        alert("Please enter your name and arrival time.");
+      if (!name || !arrival) {
+        alert("Please enter both name and arrival time.");
         return;
       }
 
-      db.ref("slot_status").set({
-        slot: "booked",
-        name: name,
-        arrival: arrivalTimestamp
+      // Convert to Unix timestamp
+      const arrivalUnix = Math.floor(new Date(arrival).getTime() / 1000);
+
+      const bookingData = {
+        status: "booked",
+        bookedBy: name,
+        arrivalTime: arrivalUnix.toString()
+      };
+
+      // Patch to Firebase
+      const res = await fetch(firebaseURL, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingData)
       });
+
+      if (res.ok) {
+        alert("Slot booked successfully!");
+        fetchSlotStatus();
+      } else {
+        alert("Booking failed. Try again.");
+      }
     }
 
-    function cancelBooking() {
-      db.ref("slot_status").set({
-        slot: "free",
-        name: "",
-        arrival: 0
+    async function cancelSlot() {
+      const res = await fetch(firebaseURL, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "free",
+          bookedBy: "",
+          arrivalTime: ""
+        })
       });
+
+      if (res.ok) {
+        alert("Booking canceled.");
+        fetchSlotStatus();
+      } else {
+        alert("Cancellation failed.");
+      }
     }
+
+    fetchSlotStatus();
+    setInterval(fetchSlotStatus, 5000); // Auto-refresh every 5 seconds
   </script>
 
 </body>
 </html>
+
+
