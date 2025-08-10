@@ -1,64 +1,184 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Parking System</title>
+  <title>Smart Parking Slot Booking</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #e9f5f1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      padding: 20px;
+      background: #f7f7f7;
+      max-width: 600px;
+      margin: auto;
     }
-    .card {
+    input, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #status {
+      margin-top: 30px;
       background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      text-align: center;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
-    .status {
-      font-size: 1.8rem;
-      color: #28a745;
-    }
+    h2 { color: #333; }
   </style>
-
-  <!-- ✅ Firebase SDK v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 
-  <div class="card">
-    <h2>🅿️ Smart Parking Slot</h2>
-    <h3 id="slotDisplay" class="status">Slot: loading...</h3>
+  <h2>🚗 Book Your Parking Slot</h2>
+
+  <label for="name">Your Name:</label>
+  <input type="text" id="name" placeholder="e.g. Sheila" required>
+
+  <label for="arrival">Arrival Time (Local):</label>
+  <input type="datetime-local" id="arrival" required>
+
+  <label for="departure">Departure Time (Local):</label>
+  <input type="datetime-local" id="departure" required>
+
+  <button onclick="bookSlot()">Book Slot</button>
+  <button onclick="cancelSlot()">Cancel Booking</button>
+
+  <div id="status">
+    <strong>Slot Info:</strong>
+    <div id="slotStatus">Loading...</div>
   </div>
 
   <script>
-    // ✅ Your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
-      authDomain: "smartparkingsystem-55a05.firebaseapp.com",
-      databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
-      projectId: "smartparkingsystem-55a05",
-      storageBucket: "smartparkingsystem-55a05.appspot.com",
-      messagingSenderId: "200855735860",
-      appId: "1:200855735860:web:369dd1116fc4ab21148461"
-    };
+    const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/slot1.json";
 
-    // ✅ Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    async function fetchSlotStatus() {
+      try {
+        const res = await fetch(firebaseURL);
+        const data = await res.json();
 
-    // ✅ Listen for slot updates
-    const slotRef = db.ref("slot_status");
-    slotRef.on("value", (snapshot) => {
-      const data = snapshot.val();
-      document.getElementById("slotDisplay").textContent = `Slot: ${data.slot}`;
-    });
+        const status = data?.status || "unknown";
+        const bookedBy = data?.bookedBy || "";
+        const arrivalTime = data?.arrivalTime || "";
+        const departureTime = data?.departureTime || "";
+
+        let readableArrival = "";
+        let readableDeparture = "";
+        let stayDuration = "";
+        let timeLeft = "";
+
+        if (arrivalTime) {
+          readableArrival = new Date(parseInt(arrivalTime) * 1000).toLocaleString();
+        }
+        if (departureTime) {
+          readableDeparture = new Date(parseInt(departureTime) * 1000).toLocaleString();
+        }
+
+        if (arrivalTime && departureTime) {
+          const diffSec = parseInt(departureTime) - parseInt(arrivalTime);
+          const hours = Math.floor(diffSec / 3600);
+          const minutes = Math.floor((diffSec % 3600) / 60);
+          stayDuration = `${hours}h ${minutes}m`;
+
+          // Countdown until departure
+          const nowUnix = Math.floor(Date.now() / 1000);
+          let remainingSec = parseInt(departureTime) - nowUnix;
+          if (remainingSec > 0) {
+            const rh = Math.floor(remainingSec / 3600);
+            const rm = Math.floor((remainingSec % 3600) / 60);
+            const rs = remainingSec % 60;
+            timeLeft = `${rh}h ${rm}m ${rs}s`;
+          } else {
+            timeLeft = "Expired";
+          }
+        }
+
+        let display = `Status: <strong>${status}</strong>`;
+        if (status === "booked") {
+          display += `<br>Booked by: <strong>${bookedBy}</strong>`;
+          display += `<br>Arrival Time: <strong>${readableArrival}</strong>`;
+          display += `<br>Departure Time: <strong>${readableDeparture}</strong>`;
+          display += `<br>Planned Stay: <strong>${stayDuration}</strong>`;
+          display += `<br>Time Left Until Departure: <strong>${timeLeft}</strong>`;
+        }
+
+        document.getElementById("slotStatus").innerHTML = display;
+
+      } catch (err) {
+        document.getElementById("slotStatus").textContent = "⚠️ Error loading data.";
+        console.error("Error fetching slot status:", err);
+      }
+    }
+
+    async function bookSlot() {
+      const name = document.getElementById("name").value.trim();
+      const arrival = document.getElementById("arrival").value;
+      const departure = document.getElementById("departure").value;
+
+      if (!name || !arrival || !departure) {
+        alert("Please enter your name, arrival time, and departure time.");
+        return;
+      }
+
+      const arrivalUnix = Math.floor(new Date(arrival).getTime() / 1000);
+      const departureUnix = Math.floor(new Date(departure).getTime() / 1000);
+
+      if (departureUnix <= arrivalUnix) {
+        alert("Departure time must be after arrival time.");
+        return;
+      }
+
+      const bookingData = {
+        status: "booked",
+        bookedBy: name,
+        arrivalTime: arrivalUnix.toString(),
+        departureTime: departureUnix.toString()
+      };
+
+      const res = await fetch(firebaseURL, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingData)
+      });
+
+      if (res.ok) {
+        alert("✅ Slot booked successfully!");
+        fetchSlotStatus();
+      } else {
+        alert("❌ Booking failed. Try again.");
+      }
+    }
+
+    async function cancelSlot() {
+      const res = await fetch(firebaseURL, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "free",
+          bookedBy: "",
+          arrivalTime: "",
+          departureTime: ""
+        })
+      });
+
+      if (res.ok) {
+        alert("🚫 Booking canceled.");
+        fetchSlotStatus();
+      } else {
+        alert("❌ Cancellation failed.");
+      }
+    }
+
+    fetchSlotStatus();
+    setInterval(fetchSlotStatus, 1000); // Auto-refresh every second for countdown
   </script>
 
 </body>
