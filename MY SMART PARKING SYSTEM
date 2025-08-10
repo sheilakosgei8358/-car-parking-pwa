@@ -10,6 +10,7 @@
       max-width: 600px;
       margin: auto;
     }
+
     input, button {
       margin: 10px 0;
       padding: 10px;
@@ -18,14 +19,17 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
+
     button {
       background-color: #007bff;
       color: white;
       cursor: pointer;
     }
+
     button:hover {
       background-color: #0056b3;
     }
+
     #status {
       margin-top: 30px;
       background: white;
@@ -33,7 +37,10 @@
       border-radius: 5px;
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
-    h2 { color: #333; }
+
+    h2 {
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -45,9 +52,6 @@
 
   <label for="arrival">Arrival Time (Local):</label>
   <input type="datetime-local" id="arrival" required>
-
-  <label for="departure">Departure Time (Local):</label>
-  <input type="datetime-local" id="departure" required>
 
   <button onclick="bookSlot()">Book Slot</button>
   <button onclick="cancelSlot()">Cancel Booking</button>
@@ -68,46 +72,17 @@
         const status = data?.status || "unknown";
         const bookedBy = data?.bookedBy || "";
         const arrivalTime = data?.arrivalTime || "";
-        const departureTime = data?.departureTime || "";
 
-        let readableArrival = "";
-        let readableDeparture = "";
-        let stayDuration = "";
-        let timeLeft = "";
-
+        let readableTime = "";
         if (arrivalTime) {
-          readableArrival = new Date(parseInt(arrivalTime) * 1000).toLocaleString();
-        }
-        if (departureTime) {
-          readableDeparture = new Date(parseInt(departureTime) * 1000).toLocaleString();
-        }
-
-        if (arrivalTime && departureTime) {
-          const diffSec = parseInt(departureTime) - parseInt(arrivalTime);
-          const hours = Math.floor(diffSec / 3600);
-          const minutes = Math.floor((diffSec % 3600) / 60);
-          stayDuration = `${hours}h ${minutes}m`;
-
-          // Countdown until departure
-          const nowUnix = Math.floor(Date.now() / 1000);
-          let remainingSec = parseInt(departureTime) - nowUnix;
-          if (remainingSec > 0) {
-            const rh = Math.floor(remainingSec / 3600);
-            const rm = Math.floor((remainingSec % 3600) / 60);
-            const rs = remainingSec % 60;
-            timeLeft = `${rh}h ${rm}m ${rs}s`;
-          } else {
-            timeLeft = "Expired";
-          }
+          const dt = new Date(parseInt(arrivalTime) * 1000);
+          readableTime = dt.toLocaleString();
         }
 
         let display = `Status: <strong>${status}</strong>`;
         if (status === "booked") {
           display += `<br>Booked by: <strong>${bookedBy}</strong>`;
-          display += `<br>Arrival Time: <strong>${readableArrival}</strong>`;
-          display += `<br>Departure Time: <strong>${readableDeparture}</strong>`;
-          display += `<br>Planned Stay: <strong>${stayDuration}</strong>`;
-          display += `<br>Time Left Until Departure: <strong>${timeLeft}</strong>`;
+          display += `<br>Arrival Time: <strong>${readableTime}</strong>`;
         }
 
         document.getElementById("slotStatus").innerHTML = display;
@@ -121,26 +96,18 @@
     async function bookSlot() {
       const name = document.getElementById("name").value.trim();
       const arrival = document.getElementById("arrival").value;
-      const departure = document.getElementById("departure").value;
 
-      if (!name || !arrival || !departure) {
-        alert("Please enter your name, arrival time, and departure time.");
+      if (!name || !arrival) {
+        alert("Please enter both name and arrival time.");
         return;
       }
 
       const arrivalUnix = Math.floor(new Date(arrival).getTime() / 1000);
-      const departureUnix = Math.floor(new Date(departure).getTime() / 1000);
-
-      if (departureUnix <= arrivalUnix) {
-        alert("Departure time must be after arrival time.");
-        return;
-      }
 
       const bookingData = {
         status: "booked",
         bookedBy: name,
-        arrivalTime: arrivalUnix.toString(),
-        departureTime: departureUnix.toString()
+        arrivalTime: arrivalUnix.toString()
       };
 
       const res = await fetch(firebaseURL, {
@@ -164,8 +131,7 @@
         body: JSON.stringify({
           status: "free",
           bookedBy: "",
-          arrivalTime: "",
-          departureTime: ""
+          arrivalTime: ""
         })
       });
 
@@ -178,7 +144,7 @@
     }
 
     fetchSlotStatus();
-    setInterval(fetchSlotStatus, 1000); // Auto-refresh every second for countdown
+    setInterval(fetchSlotStatus, 5000); // Auto-refresh every 5 seconds
   </script>
 
 </body>
