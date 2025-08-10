@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Parking Booking</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #333;
+    }
+
+    .form-container, .status-container {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        max-width: 500px;
+        margin: 20px auto;
+    }
+
+    .form-container h2, .status-container h2 {
+        margin-top: 0;
+        color: #007BFF;
+    }
+
+    label {
+        font-weight: bold;
+        margin-top: 10px;
+        display: block;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    button {
+        margin-top: 15px;
+        width: 100%;
+        padding: 12px;
+        background: #007BFF;
+        border: none;
+        color: white;
+        font-size: 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    button:hover {
+        background: #0056b3;
+    }
+
+    .status-box {
+        background: #f9fafc;
+        border-left: 5px solid #007BFF;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .status-item {
+        margin: 10px 0;
+        font-size: 15px;
+    }
+
+    .label {
+        font-weight: bold;
+        color: #333;
+    }
+
+    .value {
+        color: #555;
+        display: block;
+        margin-top: 3px;
+    }
+</style>
+</head>
+<body>
+
+<h1>Smart Parking System</h1>
+
+<div class="form-container">
+    <h2>Book a Slot</h2>
+    <label for="name">Your Name:</label>
+    <input type="text" id="name">
+
+    <label for="arrival">Arrival Time:</label>
+    <input type="datetime-local" id="arrival">
+
+    <label for="departure">Departure Time:</label>
+    <input type="datetime-local" id="departure">
+
+    <button onclick="bookSlot()">Book Slot</button>
+</div>
+
+<div class="status-container">
+    <h2>Slot Status</h2>
+    <div id="slotDetails" class="status-box">
+        <div class="status-item"><span class="label">Status:</span> <span class="value">Free</span></div>
+        <div class="status-item"><span class="label">Booked By:</span> <span class="value">N/A</span></div>
+        <div class="status-item"><span class="label">Arrival Time:</span> <span class="value">N/A</span></div>
+        <div class="status-item"><span class="label">Departure Time:</span> <span class="value">N/A</span></div>
+        <div class="status-item"><span class="label">Planned Stay:</span> <span class="value">N/A</span></div>
+        <div class="status-item"><span class="label">Time Left Until Departure:</span> <span class="value">N/A</span></div>
+    </div>
+</div>
+
+<script>
+    function formatDateTime(dt) {
+        const options = { 
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        };
+        return new Date(dt).toLocaleString([], options);
+    }
+
+    function calculateStay(arrival, departure) {
+        const diffMs = new Date(departure) - new Date(arrival);
+        if (diffMs <= 0) return "Invalid";
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        return `${hours}h ${minutes}m`;
+    }
+
+    function bookSlot() {
+        const name = document.getElementById("name").value;
+        const arrival = document.getElementById("arrival").value;
+        const departure = document.getElementById("departure").value;
+
+        if (!name || !arrival || !departure) {
+            alert("Please fill all fields!");
+            return;
+        }
+
+        const stay = calculateStay(arrival, departure);
+        const timeLeft = calculateStay(new Date(), departure);
+
+        document.getElementById("slotDetails").innerHTML = `
+            <div class="status-item"><span class="label">Status:</span> <span class="value">Booked</span></div>
+            <div class="status-item"><span class="label">Booked By:</span> <span class="value">${name}</span></div>
+            <div class="status-item"><span class="label">Arrival Time:</span> <span class="value">${formatDateTime(arrival)}</span></div>
+            <div class="status-item"><span class="label">Departure Time:</span> <span class="value">${formatDateTime(departure)}</span></div>
+            <div class="status-item"><span class="label">Planned Stay:</span> <span class="value">${stay}</span></div>
+            <div class="status-item"><span class="label">Time Left Until Departure:</span> <span class="value">${timeLeft}</span></div>
+        `;
+    }
+</script>
+
+</body>
+</html>
