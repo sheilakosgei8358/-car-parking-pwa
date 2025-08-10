@@ -74,15 +74,31 @@
         const arrivalTime = data?.arrivalTime || "";
 
         let readableTime = "";
+        let timeRemaining = "";
+        
         if (arrivalTime) {
           const dt = new Date(parseInt(arrivalTime) * 1000);
           readableTime = dt.toLocaleString();
+
+          // Calculate remaining time in seconds
+          const nowUnix = Math.floor(Date.now() / 1000);
+          let remainingSec = parseInt(arrivalTime) - nowUnix;
+
+          if (remainingSec > 0) {
+            const hours = Math.floor(remainingSec / 3600);
+            const minutes = Math.floor((remainingSec % 3600) / 60);
+            const seconds = remainingSec % 60;
+            timeRemaining = `${hours}h ${minutes}m ${seconds}s`;
+          } else {
+            timeRemaining = "Expired";
+          }
         }
 
         let display = `Status: <strong>${status}</strong>`;
         if (status === "booked") {
           display += `<br>Booked by: <strong>${bookedBy}</strong>`;
           display += `<br>Arrival Time: <strong>${readableTime}</strong>`;
+          display += `<br>Time Remaining: <strong>${timeRemaining}</strong>`;
         }
 
         document.getElementById("slotStatus").innerHTML = display;
@@ -144,7 +160,7 @@
     }
 
     fetchSlotStatus();
-    setInterval(fetchSlotStatus, 5000); // Auto-refresh every 5 seconds
+    setInterval(fetchSlotStatus, 1000); // Refresh every second for countdown
   </script>
 
 </body>
