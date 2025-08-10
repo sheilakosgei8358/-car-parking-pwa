@@ -79,10 +79,10 @@
           readableTime = dt.toLocaleString();
         }
 
-        let display = Status: <strong>${status}</strong>;
+        let display = `Slot Status: <strong>${status}</strong>`;
         if (status === "booked") {
-          display += <br>Booked by: <strong>${bookedBy}</strong>;
-          display += <br>Arrival Time: <strong>${readableTime}</strong>;
+          display += `<br>Booked by: <strong>${bookedBy}</strong>`;
+          display += `<br>Arrival Time: <strong>${readableTime}</strong>`;
         }
 
         document.getElementById("slotStatus").innerHTML = display;
