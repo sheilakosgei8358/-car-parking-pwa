@@ -1,149 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Smart Parking Slot Booking</title>
-  <style>
-    /* Reset and base */
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f7fa;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-      align-items: center;
-      color: #333;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smart Parking Slot Booking</title>
+<style>
+  /* Reset and base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f7fa;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    align-items: center;
+    color: #333;
+  }
 
-    .container {
-      background: #fff;
-      padding: 30px 40px;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-      width: 420px;      /* fixed width */
-      min-width: 420px;  /* prevent shrinking */
-      text-align: center;
-    }
+  .container {
+    background: #fff;
+    padding: 30px 35px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    transition: box-shadow 0.3s ease;
+  }
+  .container:hover {
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
+  }
 
-    h1 {
-      margin-bottom: 20px;
-      font-weight: 700;
-      color: #222;
-      font-size: 1.8rem;
-      letter-spacing: 1.2px;
-    }
+  h1 {
+    margin-bottom: 20px;
+    font-weight: 700;
+    color: #222;
+    font-size: 1.9rem;
+    letter-spacing: 1.2px;
+  }
 
-    .location {
-      font-weight: 600;
-      font-size: 1.1rem;
-      color: #555;
-      margin-bottom: 25px;
-    }
+  .location {
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #555;
+    margin-bottom: 28px;
+  }
 
-    .status {
-      padding: 14px 0;
-      margin-bottom: 25px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 1.1rem;
-      user-select: none;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .free {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    .booked {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeeba;
-    }
-    .occupied {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
+  .status {
+    padding: 15px 0;
+    margin-bottom: 28px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1.15rem;
+    user-select: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .free {
+    background: #d4edda;
+    color: #155724;
+    border: 1.5px solid #c3e6cb;
+  }
+  .booked {
+    background: #fff3cd;
+    color: #856404;
+    border: 1.5px solid #ffeeba;
+  }
+  .occupied {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1.5px solid #f5c6cb;
+  }
 
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      text-align: left;
-    }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    text-align: left;
+  }
 
-    label {
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #444;
-      font-size: 0.95rem;
-    }
+  label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #444;
+    font-size: 1rem;
+  }
 
-    input[type="text"],
-    input[type="datetime-local"] {
-      padding: 12px 14px;
-      border-radius: 8px;
-      border: 1.8px solid #ccc;
-      font-size: 1rem;
-      transition: border-color 0.3s ease;
-    }
-    input[type="text"]:focus,
-    input[type="datetime-local"]:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 6px rgba(0, 123, 255, 0.4);
-    }
+  input[type="text"],
+  input[type="datetime-local"] {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1.8px solid #ccc;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  input[type="text"]:focus,
+  input[type="datetime-local"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+  }
 
-    button {
-      padding: 14px;
-      background-color: #007bff;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.25s ease;
-      user-select: none;
-    }
-    button:hover:not(.cancel) {
-      background-color: #0056b3;
-    }
-    button:disabled {
-      background-color: #7baaf7;
-      cursor: not-allowed;
-    }
+  button {
+    padding: 16px;
+    background-color: #007bff;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.25s ease, transform 0.15s ease;
+    user-select: none;
+  }
+  button:hover:not(.cancel) {
+    background-color: #0056b3;
+    transform: scale(1.03);
+  }
+  button:active:not(.cancel) {
+    transform: scale(0.98);
+  }
+  button:disabled {
+    background-color: #7baaf7;
+    cursor: not-allowed;
+  }
 
-    button.cancel {
-      background-color: #dc3545;
-      margin-top: 10px;
-    }
-    button.cancel:hover {
-      background-color: #a71d2a;
-    }
+  button.cancel {
+    background-color: #dc3545;
+    margin-top: 15px;
+  }
+  button.cancel:hover {
+    background-color: #a71d2a;
+    transform: scale(1.03);
+  }
+  button.cancel:active {
+    transform: scale(0.98);
+  }
 
-    #bookingForm, #cancelForm {
-      margin-top: 10px;
-    }
-  </style>
+  #bookingForm, #cancelForm {
+    margin-top: 12px;
+  }
+</style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" role="main" aria-label="Smart Parking Slot Booking Form">
     <h1>Smart Parking Slot</h1>
 
-    <div class="location">Location: Nairobi CBD, Kenyatta Avenue</div>
+    <div class="location" aria-live="polite">Location: Nairobi CBD, Kenyatta Avenue</div>
 
-    <div id="slotStatus" class="status free">Loading status...</div>
+    <div id="slotStatus" class="status free" aria-live="polite" role="status">Loading status...</div>
 
-    <form id="bookingForm">
+    <form id="bookingForm" aria-label="Book parking slot form">
       <label for="name">Your Name</label>
-      <input type="text" id="name" placeholder="Enter your name" required />
+      <input type="text" id="name" placeholder="Enter your name" required autocomplete="name" />
 
       <label for="arrivalTime">Arrival Time</label>
       <input type="datetime-local" id="arrivalTime" required />
