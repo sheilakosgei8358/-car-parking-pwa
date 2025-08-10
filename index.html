@@ -26,8 +26,8 @@
       padding: 30px 40px;
       border-radius: 12px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 420px;
+      width: 420px;      /* fixed width */
+      min-width: 420px;  /* prevent shrinking */
       text-align: center;
     }
 
@@ -130,17 +130,6 @@
 
     #bookingForm, #cancelForm {
       margin-top: 10px;
-    }
-
-    /* Responsive */
-    @media (max-width: 480px) {
-      .container {
-        padding: 25px 20px;
-        width: 90%;
-      }
-      h1 {
-        font-size: 1.5rem;
-      }
     }
   </style>
 </head>
