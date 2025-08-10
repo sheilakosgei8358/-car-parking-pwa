@@ -1,138 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Parking Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Parking System</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      padding: 20px;
+      background-color: #e9f5f1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
-    .slot-card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 0 auto;
-      max-width: 400px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
     }
-    .slot-card.booked {
-      border-left: 6px solid orange;
-    }
-    .slot-card.free {
-      border-left: 6px solid green;
-    }
-    .slot-card.occupied {
-      border-left: 6px solid red;
-    }
-    h2 {
-      margin-top: 0;
-    }
-    .status-booked {
-      color: orange;
-      font-weight: bold;
-    }
-    .status-free {
-      color: green;
-      font-weight: bold;
-    }
-    .status-occupied {
-      color: red;
-      font-weight: bold;
-    }
-    p {
-      margin: 5px 0;
+    .status {
+      font-size: 1.8rem;
+      color: #28a745;
     }
   </style>
 
-  <!-- Firebase SDK -->
+  <!-- ✅ Firebase SDK v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 
-  <h1>Smart Parking Slot Status</h1>
-  <div id="slotDetails" class="slot-card">Loading slot data...</div>
+  <div class="card">
+    <h2>🅿️ Smart Parking Slot</h2>
+    <h3 id="slotDisplay" class="status">Slot: loading...</h3>
+  </div>
 
   <script>
-    // TODO: Replace with your Firebase config
+    // ✅ Your Firebase config
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "SENDER_ID",
-      appId: "APP_ID"
+      apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
+      authDomain: "smartparkingsystem-55a05.firebaseapp.com",
+      databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
+      projectId: "smartparkingsystem-55a05",
+      storageBucket: "smartparkingsystem-55a05.appspot.com",
+      messagingSenderId: "200855735860",
+      appId: "1:200855735860:web:369dd1116fc4ab21148461"
     };
 
+    // ✅ Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Helper: format date/time
-    function formatDateTime(timestamp) {
-      if (!timestamp) return "N/A";
-      let date = new Date(timestamp);
-      return date.toLocaleString();
-    }
-
-    // Helper: planned stay duration
-    function plannedStay(arrival, departure) {
-      if (!arrival || !departure) return "N/A";
-      let diffMs = departure - arrival;
-      let diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      let diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      return `${diffHours}h ${diffMinutes}m`;
-    }
-
-    // Helper: time left until departure
-    function timeLeft(departure) {
-      if (!departure) return "N/A";
-      let diffMs = departure - Date.now();
-      if (diffMs <= 0) return "Expired";
-      let diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      let diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      return `${diffHours}h ${diffMinutes}m`;
-    }
-
-    function updateSlotUI(slot) {
-      let slotStatusHTML = '';
-
-      if (slot.status === 'booked') {
-        slotStatusHTML = `
-          <div class="slot-card booked">
-            <h2>Slot Status: <span class="status-booked">Booked</span></h2>
-            <p><strong>Booked by:</strong> ${slot.name}</p>
-            <p><strong>Arrival Time:</strong><br>${formatDateTime(slot.arrival)}</p>
-            <p><strong>Departure Time:</strong><br>${formatDateTime(slot.departure)}</p>
-            <p><strong>Planned Stay:</strong> ${plannedStay(slot.arrival, slot.departure)}</p>
-            <p><strong>Time Left Until Departure:</strong> ${timeLeft(slot.departure)}</p>
-          </div>
-        `;
-      } else {
-        let occupancyText = slot.occupied ? 
-          '<span class="status-occupied">Occupied</span>' : 
-          '<span class="status-free">Free</span>';
-
-        slotStatusHTML = `
-          <div class="slot-card ${slot.occupied ? 'occupied' : 'free'}">
-            <h2>Slot Status: ${occupancyText}</h2>
-            <p>No current booking</p>
-          </div>
-        `;
-      }
-
-      document.getElementById('slotDetails').innerHTML = slotStatusHTML;
-    }
-
-    // Listen for slot updates in Firebase
-    db.ref('parking/slot1').on('value', (snapshot) => {
-      if (snapshot.exists()) {
-        updateSlotUI(snapshot.val());
-      } else {
-        document.getElementById('slotDetails').innerHTML = '<div class="slot-card">No slot data found</div>';
-      }
+    // ✅ Listen for slot updates
+    const slotRef = db.ref("slot_status");
+    slotRef.on("value", (snapshot) => {
+      const data = snapshot.val();
+      document.getElementById("slotDisplay").textContent = `Slot: ${data.slot}`;
     });
   </script>
 
