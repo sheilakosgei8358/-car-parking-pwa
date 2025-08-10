@@ -1,70 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Smart Parking Slot Booking</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f7f7f7;
-      max-width: 600px;
-      margin: auto;
-    }
-    h1 { text-align: center; }
-    .status {
-      padding: 10px;
-      margin: 10px 0;
-      font-weight: bold;
-      border-radius: 5px;
-      text-align: center;
-    }
-    .free { background: #c8f7c5; color: green; }
-    .booked { background: #fef9c3; color: #b58900; }
-    .occupied { background: #f8d7da; color: #842029; }
-    input, button {
-      margin: 5px 0;
-      padding: 8px;
-      width: 100%;
+    /* Reset and base */
+    * {
       box-sizing: border-box;
     }
-    button {
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background: #007bff;
-      color: white;
-      font-size: 14px;
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      align-items: center;
+      color: #333;
     }
-    button.cancel {
-      background: red;
-    }
-    .location {
-      font-weight: bold;
-      margin-bottom: 10px;
-      font-size: 16px;
+
+    .container {
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 420px;
       text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-weight: 700;
+      color: #222;
+      font-size: 1.8rem;
+      letter-spacing: 1.2px;
+    }
+
+    .location {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #555;
+      margin-bottom: 25px;
+    }
+
+    .status {
+      padding: 14px 0;
+      margin-bottom: 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      user-select: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .free {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .booked {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    .occupied {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      text-align: left;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #444;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"],
+    input[type="datetime-local"] {
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1.8px solid #ccc;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus,
+    input[type="datetime-local"]:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 6px rgba(0, 123, 255, 0.4);
+    }
+
+    button {
+      padding: 14px;
+      background-color: #007bff;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.25s ease;
+      user-select: none;
+    }
+    button:hover:not(.cancel) {
+      background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #7baaf7;
+      cursor: not-allowed;
+    }
+
+    button.cancel {
+      background-color: #dc3545;
+      margin-top: 10px;
+    }
+    button.cancel:hover {
+      background-color: #a71d2a;
+    }
+
+    #bookingForm, #cancelForm {
+      margin-top: 10px;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .container {
+        padding: 25px 20px;
+        width: 90%;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Smart Parking Slot</h1>
+  <div class="container">
+    <h1>Smart Parking Slot</h1>
 
-  <!-- Static Location Text -->
-  <div class="location">Location: Nairobi CBD, Kenyatta Avenue</div>
+    <div class="location">Location: Nairobi CBD, Kenyatta Avenue</div>
 
-  <div id="slotStatus" class="status">Loading status...</div>
+    <div id="slotStatus" class="status free">Loading status...</div>
 
-  <div id="bookingForm">
-    <input type="text" id="name" placeholder="Your Name" required>
-    <label for="arrivalTime">Arrival Time:</label>
-    <input type="datetime-local" id="arrivalTime" required>
-    <label for="leaveTime">Leaving Time:</label>
-    <input type="datetime-local" id="leaveTime" required>
-    <button onclick="bookSlot()">Book Slot</button>
-  </div>
+    <form id="bookingForm">
+      <label for="name">Your Name</label>
+      <input type="text" id="name" placeholder="Enter your name" required />
 
-  <div id="cancelForm" style="display:none;">
-    <button class="cancel" onclick="cancelBooking()">Cancel Booking</button>
+      <label for="arrivalTime">Arrival Time</label>
+      <input type="datetime-local" id="arrivalTime" required />
+
+      <label for="leaveTime">Leaving Time</label>
+      <input type="datetime-local" id="leaveTime" required />
+
+      <button type="button" onclick="bookSlot()">Book Slot</button>
+    </form>
+
+    <div id="cancelForm" style="display:none;">
+      <button class="cancel" onclick="cancelBooking()">Cancel Booking</button>
+    </div>
   </div>
 
   <!-- Firebase SDK -->
@@ -86,7 +189,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Fetch NTP time from worldtimeapi
     async function getNTPTime() {
       try {
         const res = await fetch("https://worldtimeapi.org/api/timezone/Africa/Nairobi");
@@ -98,10 +200,8 @@
       }
     }
 
-    // Firebase reference for the parking slot
     const slotRef = db.ref("parking/slot1");
 
-    // Update UI based on slot status in Firebase
     slotRef.on("value", snapshot => {
       const data = snapshot.val();
       updateStatus(data);
@@ -131,7 +231,6 @@
         statusEl.textContent = "Occupied";
         statusEl.className = "status occupied";
       } else {
-        // Booking expired: clear slot
         slotRef.remove();
         statusEl.textContent = "Free";
         statusEl.className = "status free";
@@ -176,7 +275,7 @@
       });
 
       alert("Slot booked successfully! Please arrive on time.");
-      // Clear form
+
       document.getElementById("name").value = "";
       document.getElementById("arrivalTime").value = "";
       document.getElementById("leaveTime").value = "";
