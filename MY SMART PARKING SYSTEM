@@ -25,7 +25,6 @@
       color: white;
       cursor: pointer;
     }
-
     button:hover {
       background-color: #0056b3;
     }
@@ -41,6 +40,18 @@
     h2 {
       color: #333;
     }
+
+    .status-badge {
+      padding: 5px 10px;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .free { background-color: #28a745; }
+    .occupied { background-color: #dc3545; }
+    .booked { background-color: #ffc107; color: black; }
   </style>
 </head>
 <body>
@@ -63,6 +74,7 @@
 
   <script>
     const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/slot1.json";
+    let lastStatus = null; // To detect changes
 
     async function fetchSlotStatus() {
       try {
@@ -79,13 +91,30 @@
           readableTime = dt.toLocaleString();
         }
 
-        let display = `Status: <strong>${status}</strong>`;
-        if (status === "booked") {
-          display += `<br>Booked by: <strong>${bookedBy}</strong>`;
-          display += `<br>Arrival Time: <strong>${readableTime}</strong>`;
+        let display = "";
+        if (status === "free") {
+          display = `<span class="status-badge free">FREE</span><br>This slot is available.`;
+        } 
+        else if (status === "occupied") {
+          display = `<span class="status-badge occupied">OCCUPIED</span><br>This slot is currently in use.`;
+        } 
+        else if (status === "booked") {
+          display = `<span class="status-badge booked">BOOKED</span><br>
+                     <strong>Booked by:</strong> ${bookedBy}<br>
+                     <strong>Arrival Time:</strong> ${readableTime}`;
+        } 
+        else {
+          display = `Status: <strong>${status}</strong>`;
         }
 
         document.getElementById("slotStatus").innerHTML = display;
+
+        // Show notification only when status changes to "booked"
+        if (status === "booked" && lastStatus !== "booked") {
+          alert(`📢 Slot booked by ${bookedBy}!`);
+        }
+
+        lastStatus = status;
 
       } catch (err) {
         document.getElementById("slotStatus").textContent = "⚠️ Error loading data.";
@@ -148,4 +177,4 @@
   </script>
 
 </body>
-</html>  
+</html>
