@@ -1,91 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Smart Parking Booking</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 20px;
       background: #f4f4f4;
-      padding: 20px;
     }
 
     h1 {
       text-align: center;
     }
 
-    form {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
+    .form-container, .status-container {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
       max-width: 400px;
-      margin: auto;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin: 10px auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
 
     label {
       display: block;
-      margin-bottom: 5px;
+      margin-top: 10px;
       font-weight: bold;
     }
 
-    input {
+    input, button {
       width: 100%;
       padding: 8px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
+      margin-top: 5px;
       border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
     }
 
     button {
-      width: 100%;
-      padding: 10px;
       background: #28a745;
-      border: none;
       color: white;
-      font-size: 16px;
-      border-radius: 5px;
+      border: none;
+      margin-top: 15px;
       cursor: pointer;
     }
 
     button:hover {
       background: #218838;
     }
+
+    .status-container p {
+      margin: 6px 0;
+    }
+
+    .status-label {
+      font-weight: bold;
+      color: #555;
+    }
   </style>
 </head>
 <body>
 
-<h1>Book Parking Slot</h1>
+<h1>Smart Parking Booking</h1>
 
-<form id="bookingForm">
-  <label for="name">Name:</label>
-  <input type="text" id="name" name="name" required>
+<div class="form-container">
+  <label for="name">Your Name:</label>
+  <input type="text" id="name" placeholder="Enter your name">
 
   <label for="arrival">Arrival Time:</label>
-  <input type="datetime-local" id="arrival" name="arrival" required>
+  <input type="datetime-local" id="arrival">
 
   <label for="departure">Departure Time:</label>
-  <input type="datetime-local" id="departure" name="departure" required>
+  <input type="datetime-local" id="departure">
 
-  <button type="submit">Book Slot</button>
-</form>
+  <button onclick="bookSlot()">Book Slot</button>
+</div>
+
+<div class="status-container" id="slotDetails">
+  <p>No booking yet.</p>
+</div>
 
 <script>
-document.getElementById("bookingForm").addEventListener("submit", function(e) {
-  e.preventDefault();
+  function formatDateTime(dateString) {
+    const options = { 
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleString([], options);
+  }
 
-  let name = document.getElementById("name").value;
-  let arrival = document.getElementById("arrival").value;
-  let departure = document.getElementById("departure").value;
+  function calcPlannedStay(arrival, departure) {
+    const ms = new Date(departure) - new Date(arrival);
+    if (ms <= 0) return "Invalid time range";
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  }
 
-  console.log("Booking Details:");
-  console.log("Name:", name);
-  console.log("Arrival Time:", arrival);
-  console.log("Departure Time:", departure);
+  function timeLeftUntilDeparture(departure) {
+    const ms = new Date(departure) - new Date();
+    if (ms <= 0) return "Expired";
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
 
-  alert("Slot booked for " + name + "\nArrival: " + arrival + "\nDeparture: " + departure);
+  function bookSlot() {
+    const name = document.getElementById("name").value;
+    const arrival = document.getElementById("arrival").value;
+    const departure = document.getElementById("departure").value;
 
-  // Here is where you would send the data to Firebase
-});
+    if (!name || !arrival || !departure) {
+      alert("Please fill all fields.");
+      return;
+    }
+
+    const plannedStay = calcPlannedStay(arrival, departure);
+    const timeLeft = timeLeftUntilDeparture(departure);
+
+    document.getElementById("slotDetails").innerHTML = `
+      <p><span class="status-label">Status:</span> Booked</p>
+      <p><span class="status-label">Booked by:</span> ${name}</p>
+      <p><span class="status-label">Arrival Time:</span><br>${formatDateTime(arrival)}</p>
+      <p><span class="status-label">Departure Time:</span><br>${formatDateTime(departure)}</p>
+      <p><span class="status-label">Planned Stay:</span> ${plannedStay}</p>
+      <p><span class="status-label">Time Left Until Departure:</span> ${timeLeft}</p>
+    `;
+
+    setInterval(() => {
+      document.querySelector("#slotDetails p:last-child").innerHTML =
+        `<span class="status-label">Time Left Until Departure:</span> ${timeLeftUntilDeparture(departure)}`;
+    }, 1000);
+  }
 </script>
 
 </body>
