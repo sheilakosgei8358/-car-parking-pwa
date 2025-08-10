@@ -34,6 +34,7 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
     h2 { color: #333; }
+    strong.time-label { color: #007bff; } /* Make times stand out */
   </style>
 </head>
 <body>
@@ -104,8 +105,8 @@
         let display = `Status: <strong>${status}</strong>`;
         if (status === "booked") {
           display += `<br>Booked by: <strong>${bookedBy}</strong>`;
-          display += `<br>Arrival Time: <strong>${readableArrival}</strong>`;
-          display += `<br>Departure Time: <strong>${readableDeparture}</strong>`;
+          display += `<br>Arrival Time: <strong class="time-label">${readableArrival}</strong>`;
+          display += `<br>Departure Time: <strong class="time-label">${readableDeparture}</strong>`; // on its own line
           display += `<br>Planned Stay: <strong>${stayDuration}</strong>`;
           display += `<br>Time Left Until Departure: <strong>${timeLeft}</strong>`;
         }
@@ -178,7 +179,7 @@
     }
 
     fetchSlotStatus();
-    setInterval(fetchSlotStatus, 1000); // Auto-refresh every second for countdown
+    setInterval(fetchSlotStatus, 1000); // Refresh every second for countdown
   </script>
 
 </body>
