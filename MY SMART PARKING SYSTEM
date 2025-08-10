@@ -1,179 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Smart Parking Slot Booking</title>
+  <meta charset="UTF-8">
+  <title>Smart Parking Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #f4f6f8;
       padding: 20px;
-      background: #f7f7f7;
-      max-width: 600px;
-      margin: auto;
     }
-
-    input, button {
-      margin: 10px 0;
-      padding: 10px;
-      width: 100%;
+    .slot-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 0 auto;
       max-width: 400px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-
-    button {
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
+    .slot-card.booked {
+      border-left: 6px solid orange;
     }
-    button:hover {
-      background-color: #0056b3;
+    .slot-card.free {
+      border-left: 6px solid green;
     }
-
-    #status {
-      margin-top: 30px;
-      background: white;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    .slot-card.occupied {
+      border-left: 6px solid red;
     }
-
     h2 {
-      color: #333;
+      margin-top: 0;
     }
-
-    .status-badge {
-      padding: 5px 10px;
-      border-radius: 5px;
-      color: white;
+    .status-booked {
+      color: orange;
       font-weight: bold;
-      display: inline-block;
-      margin-bottom: 10px;
     }
-    .free { background-color: #28a745; }
-    .occupied { background-color: #dc3545; }
-    .booked { background-color: #ffc107; color: black; }
+    .status-free {
+      color: green;
+      font-weight: bold;
+    }
+    .status-occupied {
+      color: red;
+      font-weight: bold;
+    }
+    p {
+      margin: 5px 0;
+    }
   </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 
-  <h2>🚗 Book Your Parking Slot</h2>
-
-  <label for="name">Your Name:</label>
-  <input type="text" id="name" placeholder="e.g. Sheila" required>
-
-  <label for="arrival">Arrival Time (Local):</label>
-  <input type="datetime-local" id="arrival" required>
-
-  <button onclick="bookSlot()">Book Slot</button>
-  <button onclick="cancelSlot()">Cancel Booking</button>
-
-  <div id="status">
-    <strong>Slot Info:</strong>
-    <div id="slotStatus">Loading...</div>
-  </div>
+  <h1>Smart Parking Slot Status</h1>
+  <div id="slotDetails" class="slot-card">Loading slot data...</div>
 
   <script>
-    const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/slot1.json";
-    let lastStatus = null; // To detect changes
+    // TODO: Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
 
-    async function fetchSlotStatus() {
-      try {
-        const res = await fetch(firebaseURL);
-        const data = await res.json();
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        const status = data?.status || "unknown";
-        const bookedBy = data?.bookedBy || "";
-        const arrivalTime = data?.arrivalTime || "";
-
-        let readableTime = "";
-        if (arrivalTime) {
-          const dt = new Date(parseInt(arrivalTime) * 1000);
-          readableTime = dt.toLocaleString();
-        }
-
-        let display = "";
-        if (status === "free") {
-          display = `<span class="status-badge free">FREE</span><br>This slot is available.`;
-        } 
-        else if (status === "occupied") {
-          display = `<span class="status-badge occupied">OCCUPIED</span><br>This slot is currently in use.`;
-        } 
-        else if (status === "booked") {
-          display = `<span class="status-badge booked">BOOKED</span><br>
-                     <strong>Booked by:</strong> ${bookedBy}<br>
-                     <strong>Arrival Time:</strong> ${readableTime}`;
-        } 
-        else {
-          display = `Status: <strong>${status}</strong>`;
-        }
-
-        document.getElementById("slotStatus").innerHTML = display;
-
-        // Show notification only when status changes to "booked"
-        if (status === "booked" && lastStatus !== "booked") {
-          alert(`📢 Slot booked by ${bookedBy}!`);
-        }
-
-        lastStatus = status;
-
-      } catch (err) {
-        document.getElementById("slotStatus").textContent = "⚠️ Error loading data.";
-        console.error("Error fetching slot status:", err);
-      }
+    // Helper: format date/time
+    function formatDateTime(timestamp) {
+      if (!timestamp) return "N/A";
+      let date = new Date(timestamp);
+      return date.toLocaleString();
     }
 
-    async function bookSlot() {
-      const name = document.getElementById("name").value.trim();
-      const arrival = document.getElementById("arrival").value;
+    // Helper: planned stay duration
+    function plannedStay(arrival, departure) {
+      if (!arrival || !departure) return "N/A";
+      let diffMs = departure - arrival;
+      let diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      let diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return `${diffHours}h ${diffMinutes}m`;
+    }
 
-      if (!name || !arrival) {
-        alert("Please enter both name and arrival time.");
-        return;
-      }
+    // Helper: time left until departure
+    function timeLeft(departure) {
+      if (!departure) return "N/A";
+      let diffMs = departure - Date.now();
+      if (diffMs <= 0) return "Expired";
+      let diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      let diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return `${diffHours}h ${diffMinutes}m`;
+    }
 
-      const arrivalUnix = Math.floor(new Date(arrival).getTime() / 1000);
+    function updateSlotUI(slot) {
+      let slotStatusHTML = '';
 
-      const bookingData = {
-        status: "booked",
-        bookedBy: name,
-        arrivalTime: arrivalUnix.toString()
-      };
-
-      const res = await fetch(firebaseURL, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bookingData)
-      });
-
-      if (res.ok) {
-        alert("✅ Slot booked successfully!");
-        fetchSlotStatus();
+      if (slot.status === 'booked') {
+        slotStatusHTML = `
+          <div class="slot-card booked">
+            <h2>Slot Status: <span class="status-booked">Booked</span></h2>
+            <p><strong>Booked by:</strong> ${slot.name}</p>
+            <p><strong>Arrival Time:</strong><br>${formatDateTime(slot.arrival)}</p>
+            <p><strong>Departure Time:</strong><br>${formatDateTime(slot.departure)}</p>
+            <p><strong>Planned Stay:</strong> ${plannedStay(slot.arrival, slot.departure)}</p>
+            <p><strong>Time Left Until Departure:</strong> ${timeLeft(slot.departure)}</p>
+          </div>
+        `;
       } else {
-        alert("❌ Booking failed. Try again.");
+        let occupancyText = slot.occupied ? 
+          '<span class="status-occupied">Occupied</span>' : 
+          '<span class="status-free">Free</span>';
+
+        slotStatusHTML = `
+          <div class="slot-card ${slot.occupied ? 'occupied' : 'free'}">
+            <h2>Slot Status: ${occupancyText}</h2>
+            <p>No current booking</p>
+          </div>
+        `;
       }
+
+      document.getElementById('slotDetails').innerHTML = slotStatusHTML;
     }
 
-    async function cancelSlot() {
-      const res = await fetch(firebaseURL, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "free",
-          bookedBy: "",
-          arrivalTime: ""
-        })
-      });
-
-      if (res.ok) {
-        alert("🚫 Booking canceled.");
-        fetchSlotStatus();
+    // Listen for slot updates in Firebase
+    db.ref('parking/slot1').on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        updateSlotUI(snapshot.val());
       } else {
-        alert("❌ Cancellation failed.");
+        document.getElementById('slotDetails').innerHTML = '<div class="slot-card">No slot data found</div>';
       }
-    }
-
-    fetchSlotStatus();
-    setInterval(fetchSlotStatus, 5000); // Auto-refresh every 5 seconds
+    });
   </script>
 
 </body>
