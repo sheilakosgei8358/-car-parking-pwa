@@ -1,291 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
 <title>Smart Parking Slot Booking</title>
 <style>
-  /* Reset and base */
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f4f7fa;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    min-height: 100vh;
-    align-items: center;
-    color: #333;
-  }
-
-  .container {
-    background: #fff;
-    padding: 30px 35px;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    max-width: 420px;
-    width: 90%;
-    text-align: center;
-    transition: box-shadow 0.3s ease;
-  }
-  .container:hover {
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
-  }
-
-  h1 {
-    margin-bottom: 20px;
-    font-weight: 700;
-    color: #222;
-    font-size: 1.9rem;
-    letter-spacing: 1.2px;
-  }
-
-  .location {
-    font-weight: 600;
-    font-size: 1.15rem;
-    color: #555;
-    margin-bottom: 28px;
-  }
-
-  .status {
-    padding: 15px 0;
-    margin-bottom: 28px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1.15rem;
-    user-select: none;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-  .free {
-    background: #d4edda;
-    color: #155724;
-    border: 1.5px solid #c3e6cb;
-  }
-  .booked {
-    background: #fff3cd;
-    color: #856404;
-    border: 1.5px solid #ffeeba;
-  }
-  .occupied {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1.5px solid #f5c6cb;
-  }
-
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    text-align: left;
-  }
-
-  label {
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: #444;
-    font-size: 1rem;
-  }
-
-  input[type="text"],
-  input[type="datetime-local"] {
-    padding: 14px 16px;
-    border-radius: 10px;
-    border: 1.8px solid #ccc;
-    font-size: 1rem;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  input[type="text"]:focus,
-  input[type="datetime-local"]:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
-  }
-
-  button {
-    padding: 16px;
-    background-color: #007bff;
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: background-color 0.25s ease, transform 0.15s ease;
-    user-select: none;
-  }
-  button:hover:not(.cancel) {
-    background-color: #0056b3;
-    transform: scale(1.03);
-  }
-  button:active:not(.cancel) {
-    transform: scale(0.98);
-  }
-  button:disabled {
-    background-color: #7baaf7;
-    cursor: not-allowed;
-  }
-
-  button.cancel {
-    background-color: #dc3545;
-    margin-top: 15px;
-  }
-  button.cancel:hover {
-    background-color: #a71d2a;
-    transform: scale(1.03);
-  }
-  button.cancel:active {
-    transform: scale(0.98);
-  }
-
-  #bookingForm, #cancelForm {
-    margin-top: 12px;
-  }
+    body {
+        font-family: Arial, sans-serif;
+        background: #f7f7f7;
+        padding: 20px;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .slot {
+        background: #fff;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 12px;
+        color: white;
+        font-weight: bold;
+    }
+    .free { background: green; color: white; }
+    .booked { background: orange; color: white; }
+    .occupied { background: red; color: white; }
+    .slot.free { background: #d4edda; }
+    .slot.booked { background: #fff3cd; }
+    .slot.occupied { background: #f8d7da; }
 </style>
 </head>
 <body>
-  <div class="container" role="main" aria-label="Smart Parking Slot Booking Form">
-    <h1>Smart Parking Slot</h1>
 
-    <div class="location" aria-live="polite">Location: Nairobi CBD, Kenyatta Avenue</div>
+<h1>Smart Parking Slot Booking</h1>
 
-    <div id="slotStatus" class="status free" aria-live="polite" role="status">Loading status...</div>
+<div id="slots"></div>
 
-    <form id="bookingForm" aria-label="Book parking slot form">
-      <label for="name">Your Name</label>
-      <input type="text" id="name" placeholder="Enter your name" required autocomplete="name" />
+<hr>
+<h2>Book a Slot</h2>
+<form id="bookingForm">
+    <input type="text" id="name" placeholder="Your Name" required><br>
+    <input type="text" id="location" placeholder="Slot Location" required><br>
+    <label>Arrival Time:</label>
+    <input type="datetime-local" id="arrivalTime" required><br>
+    <label>Leaving Time:</label>
+    <input type="datetime-local" id="leavingTime" required><br>
+    <button type="submit">Book Slot</button>
+</form>
 
-      <label for="arrivalTime">Arrival Time</label>
-      <input type="datetime-local" id="arrivalTime" required />
-
-      <label for="leaveTime">Leaving Time</label>
-      <input type="datetime-local" id="leaveTime" required />
-
-      <button type="button" onclick="bookSlot()">Book Slot</button>
-    </form>
-
-    <div id="cancelForm" style="display:none;">
-      <button class="cancel" onclick="cancelBooking()">Cancel Booking</button>
-    </div>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <script>
-    // Your Firebase config
+<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-database-compat.js"></script>
+<script>
+    // ==========================
+    // 🔹 YOUR FIREBASE CONFIG 🔹
+    // ==========================
     const firebaseConfig = {
-      apiKey: "AIzaSyC83XNFywh1cxT-0ty6p9d_mIevHUzI74",
-      authDomain: "smartparkingsystem-55a05.firebaseapp.com",
-      databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
-      projectId: "smartparkingsystem-55a05",
-      storageBucket: "smartparkingsystem-55a05.firebasestorage.app",
-      messagingSenderId: "200855735860",
-      appId: "1:200855735860:web:369dd1116fc4ab21148461",
-      measurementId: "G-XHXNGLQBFH"
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const slotsRef = db.ref("slots");
 
-    async function getNTPTime() {
-      try {
-        const res = await fetch("https://worldtimeapi.org/api/timezone/Africa/Nairobi");
-        if (!res.ok) throw new Error("NTP fetch failed");
-        const data = await res.json();
-        return new Date(data.datetime);
-      } catch {
-        return new Date();
-      }
+    let slotTimers = {}; // Track countdown timers for each slot
+
+    // Function to render slots
+    function renderSlots(slotsData) {
+        const container = document.getElementById("slots");
+        container.innerHTML = "";
+
+        Object.keys(slotsData).forEach(slotId => {
+            const slot = slotsData[slotId];
+            const now = Date.now();
+            let status = slot.status || "free";
+
+            // Determine slot class for background
+            let slotClass = status;
+
+            // Auto-cancel booking if expired
+            if (status === "booked" && slot.arrivalTime) {
+                const expiryTime = new Date(slot.arrivalTime).getTime() + (1 * 60 * 1000);
+                if (now > expiryTime) {
+                    slotsRef.child(slotId).update({
+                        status: "free",
+                        name: "",
+                        arrivalTime: "",
+                        leavingTime: ""
+                    });
+                    status = "free";
+                    slotClass = "free";
+                }
+            }
+
+            const div = document.createElement("div");
+            div.className = `slot ${slotClass}`;
+            div.id = `slot-${slotId}`;
+
+            div.innerHTML = `
+                <strong>Slot ID:</strong> ${slotId} <br>
+                <strong>Location:</strong> ${slot.location || "N/A"} <br>
+                <strong>Status:</strong> <span class="status-badge ${status}">${status.toUpperCase()}</span> <span id="countdown-${slotId}"></span><br>
+                <strong>Name:</strong> ${slot.name || "N/A"} <br>
+                <strong>Arrival Time:</strong> ${slot.arrivalTime || "N/A"} <br>
+                <strong>Leaving Time:</strong> ${slot.leavingTime || "N/A"} <br>
+            `;
+            container.appendChild(div);
+
+            // Start live countdown if booked
+            if (status === "booked" && slot.arrivalTime) {
+                startCountdown(slotId, slot.arrivalTime);
+            } else {
+                clearCountdown(slotId);
+            }
+        });
     }
 
-    const slotRef = db.ref("parking/slot1");
+    // Start countdown for a slot
+    function startCountdown(slotId, arrivalTime) {
+        clearCountdown(slotId); // clear any previous timer
+        const expiryTime = new Date(arrivalTime).getTime() + (1 * 60 * 1000);
 
-    slotRef.on("value", snapshot => {
-      const data = snapshot.val();
-      updateStatus(data);
+        slotTimers[slotId] = setInterval(() => {
+            const now = Date.now();
+            const remaining = expiryTime - now;
+            const countdownEl = document.getElementById(`countdown-${slotId}`);
+
+            if (remaining > 0) {
+                const seconds = Math.floor((remaining / 1000) % 60);
+                countdownEl.textContent = ` (Time left: ${seconds}s)`;
+            } else {
+                clearCountdown(slotId);
+                slotsRef.child(slotId).update({
+                    status: "free",
+                    name: "",
+                    arrivalTime: "",
+                    leavingTime: ""
+                });
+            }
+        }, 1000);
+    }
+
+    // Stop countdown for a slot
+    function clearCountdown(slotId) {
+        if (slotTimers[slotId]) {
+            clearInterval(slotTimers[slotId]);
+            delete slotTimers[slotId];
+        }
+        const countdownEl = document.getElementById(`countdown-${slotId}`);
+        if (countdownEl) countdownEl.textContent = "";
+    }
+
+    // Listen for changes in Firebase
+    slotsRef.on("value", snapshot => {
+        renderSlots(snapshot.val() || {});
     });
 
-    function updateStatus(data) {
-      const statusEl = document.getElementById("slotStatus");
-      if (!data) {
-        statusEl.textContent = "Free";
-        statusEl.className = "status free";
-        document.getElementById("bookingForm").style.display = "block";
-        document.getElementById("cancelForm").style.display = "none";
-        return;
-      }
+    // Booking form
+    document.getElementById("bookingForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const name = document.getElementById("name").value;
+        const location = document.getElementById("location").value;
+        const arrivalTime = document.getElementById("arrivalTime").value;
+        const leavingTime = document.getElementById("leavingTime").value;
 
-      const now = new Date();
-      const arrival = new Date(data.arrivalTime);
-      const leave = new Date(data.leaveTime);
+        slotsRef.once("value").then(snapshot => {
+            const slotsData = snapshot.val() || {};
+            let freeSlotId = null;
 
-      if (data.occupied) {
-        statusEl.textContent = "Occupied";
-        statusEl.className = "status occupied";
-      } else if (now < arrival) {
-        statusEl.textContent = "Booked (Awaiting Arrival)";
-        statusEl.className = "status booked";
-      } else if (now >= arrival && now <= leave) {
-        statusEl.textContent = "Occupied";
-        statusEl.className = "status occupied";
-      } else {
-        slotRef.remove();
-        statusEl.textContent = "Free";
-        statusEl.className = "status free";
-      }
+            Object.keys(slotsData).forEach(slotId => {
+                if (slotsData[slotId].status === "free" && !freeSlotId) {
+                    freeSlotId = slotId;
+                }
+            });
 
-      if (data.name) {
-        document.getElementById("bookingForm").style.display = "none";
-        document.getElementById("cancelForm").style.display = "block";
-      } else {
-        document.getElementById("bookingForm").style.display = "block";
-        document.getElementById("cancelForm").style.display = "none";
-      }
-    }
+            if (freeSlotId) {
+                slotsRef.child(freeSlotId).update({
+                    name,
+                    location,
+                    arrivalTime,
+                    leavingTime,
+                    status: "booked"
+                });
+                alert("Slot booked successfully!");
+            } else {
+                alert("No free slots available.");
+            }
+        });
+    });
+</script>
 
-    async function bookSlot() {
-      const name = document.getElementById("name").value.trim();
-      const arrivalTime = document.getElementById("arrivalTime").value;
-      const leaveTime = document.getElementById("leaveTime").value;
-
-      if (!name || !arrivalTime || !leaveTime) {
-        alert("Please fill all fields.");
-        return;
-      }
-
-      const ntpTime = await getNTPTime();
-      const arrival = new Date(arrivalTime);
-      if (arrival < ntpTime) {
-        alert("Arrival time must be in the future.");
-        return;
-      }
-      if (new Date(leaveTime) <= arrival) {
-        alert("Leaving time must be after arrival time.");
-        return;
-      }
-
-      slotRef.set({
-        name,
-        arrivalTime,
-        leaveTime,
-        occupied: false,
-        status: "booked"
-      });
-
-      alert("Slot booked successfully! Please arrive on time.");
-
-      document.getElementById("name").value = "";
-      document.getElementById("arrivalTime").value = "";
-      document.getElementById("leaveTime").value = "";
-    }
-
-    function cancelBooking() {
-      slotRef.remove();
-      alert("Booking cancelled.");
-    }
-  </script>
 </body>
 </html>
