@@ -30,14 +30,6 @@
       padding: 8px;
       font-size: 14px;
     }
-    #cancelBtn {
-      background: #cc0000;
-      color: white;
-      border: none;
-      padding: 10px;
-      cursor: pointer;
-      border-radius: 5px;
-    }
   </style>
 </head>
 <body>
@@ -49,14 +41,13 @@
     <div id="arrival"></div>
     <div id="leaving"></div>
     <div id="countdown" class="countdown"></div>
-    <button id="cancelBtn" style="display:none;" onclick="cancelBooking()">Cancel Booking</button>
   </div>
 
   <h2>Book Slot</h2>
   <input type="text" id="name" placeholder="Your Name"><br>
   <input type="datetime-local" id="arrivalTime"><br>
   <input type="datetime-local" id="leavingTime"><br>
-  <button id="bookBtn" onclick="bookSlot()">Book</button>
+  <button onclick="bookSlot()">Book</button>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -78,6 +69,7 @@
     const slotRef = db.ref("slots/1");
     let countdownInterval;
 
+    // Listen for changes
     slotRef.on("value", snapshot => {
       const data = snapshot.val();
       if (!data) return;
@@ -93,10 +85,6 @@
 
       clearInterval(countdownInterval);
 
-      // Control buttons visibility
-      document.getElementById("cancelBtn").style.display = (data.status === "booked") ? "inline-block" : "none";
-      document.getElementById("bookBtn").disabled = (data.status !== "free");
-
       if (data.status === "free") {
         card.style.background = "green";
         statusDiv.innerText = "🟢 Free";
@@ -105,7 +93,7 @@
       else if (data.status === "booked") {
         card.style.background = "orange";
         statusDiv.innerText = "🟠 Booked";
-        startCountdown(new Date(data.arrivalTime));
+        startCountdown(new Date(data.arrivalTime), data);
       }
       else if (data.status === "occupied") {
         card.style.background = "red";
@@ -114,15 +102,20 @@
       }
     }
 
-    function startCountdown(arrivalDate) {
+    function startCountdown(arrivalDate, data) {
       countdownInterval = setInterval(() => {
         const now = new Date();
-        const expiry = new Date(arrivalDate.getTime() + 1 * 60000);
+        const expiry = new Date(arrivalDate.getTime() + 1 * 60000); // +1 minute
         const diff = expiry - now;
 
         if (diff <= 0) {
           clearInterval(countdownInterval);
-          cancelBooking();
+          slotRef.update({
+            status: "free",
+            name: null,
+            arrivalTime: null,
+            leavingTime: null
+          });
           return;
         }
 
@@ -146,16 +139,6 @@
         name: name,
         arrivalTime: arrival,
         leavingTime: leaving,
-        location: "Main Entrance"
-      });
-    }
-
-    function cancelBooking() {
-      slotRef.update({
-        status: "free",
-        name: null,
-        arrivalTime: null,
-        leavingTime: null,
         location: "Main Entrance"
       });
     }
