@@ -1,270 +1,164 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Smart Parking — Live Dashboard</title>
-<style>
-  :root{
-    --bg:#0f172a; --card:#0b1224; --muted:#9aa4b2;
-    --free:#16a34a; --booked:#f59e0b; --occ:#ef4444;
-    --free-bg:#d1fae5; --booked-bg:#fef3c7; --occ-bg:#fee2e2;
-    --border:#1f2937;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:#0b1022;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-  header{position:sticky;top:0;z-index:10;background:#0b1022cc;border-bottom:1px solid var(--border);backdrop-filter:blur(6px);padding:14px 16px}
-  header h1{margin:0;font-size:18px}
-  header .sub{font-size:12px;color:var(--muted)}
-  .container{max-width:1100px;margin:16px auto;padding:0 16px}
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-  .btn{all:unset;background:#1f2937;border:1px solid #334155;padding:10px 12px;border-radius:10px;cursor:pointer}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
-  .slot.free{background:var(--free-bg);color:#052e16;border-color:#86efac}
-  .slot.booked{background:var(--booked-bg);color:#7a4a00;border-color:#fde68a}
-  .slot.occupied{background:var(--occ-bg);color:#7f1d1d;border-color:#fecaca}
-  .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .status{font-size:12px;font-weight:700;padding:4px 8px;border-radius:999px}
-  .status.free{background:var(--free);color:#052e16}
-  .status.booked{background:var(--booked);color:#291400}
-  .status.occupied{background:var(--occ);color:#2a0b0b}
-  .muted{color:var(--muted);font-size:12px}
-  label{font-size:12px;color:#0b1224;font-weight:600}
-  input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #94a3b8}
-  .timer{font-variant-numeric:tabular-nums;font-weight:700}
-  .empty{padding:16px;border:1px dashed #334155;border-radius:12px;text-align:center;color:var(--muted)}
-  a.map{color:#1d4ed8;text-decoration:none}
-</style>
+  <meta charset="UTF-8">
+  <title>Smart Parking - Single Slot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      text-align: center;
+      padding: 20px;
+    }
+    .slot {
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 350px;
+      margin: auto;
+      color: white;
+    }
+    .status {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .countdown {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+    input, button, select {
+      margin: 5px;
+      padding: 8px;
+      font-size: 14px;
+    }
+    #cancelBtn {
+      background: #cc0000;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-<header>
-  <h1>🚗 Smart Parking — Live Slots, Booking & Auto-Cancel</h1>
-  <div class="sub" id="note">Ready.</div>
-</header>
-
-<div class="container">
-  <div class="toolbar">
-    <button class="btn" id="seedBtn">Seed Demo Slots</button>
-    <button class="btn" id="refreshBtn">Refresh</button>
+  <h1>Smart Parking - Slot 1</h1>
+  
+  <div id="slotCard" class="slot">
+    <div class="status">Loading...</div>
+    <div id="location"></div>
+    <div id="arrival"></div>
+    <div id="leaving"></div>
+    <div id="countdown" class="countdown"></div>
+    <button id="cancelBtn" style="display:none;" onclick="cancelBooking()">Cancel Booking</button>
   </div>
 
-  <div id="grid" class="grid"></div>
-  <div id="empty" class="empty" style="display:none;">No slots yet. Click <b>Seed Demo Slots</b> to create sample slots.</div>
-</div>
+  <h2>Book Slot</h2>
+  <input type="text" id="name" placeholder="Your Name"><br>
+  <input type="datetime-local" id="arrivalTime"><br>
+  <input type="datetime-local" id="leavingTime"><br>
+  <button id="bookBtn" onclick="bookSlot()">Book</button>
 
-<!-- Firebase (Compat SDK for simplicity) -->
-<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-database-compat.js"></script>
-<script>
-/* ===== 1) Your Firebase Project ===== */
-const firebaseConfig = {
-  apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
-  authDomain: "smartparkingsystem-55a05.firebaseapp.com",
-  databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
-  projectId: "smartparkingsystem-55a05",
-  storageBucket: "smartparkingsystem-55a05.firebasestorage.app",
-  messagingSenderId: "200855735860",
-  appId: "1:200855735860:web:369dd1116fc4ab21148461",
-  measurementId: "G-XHXNGLQBFH"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    // === Firebase Config ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
+      authDomain: "smartparkingsystem-55a05.firebaseapp.com",
+      databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
+      projectId: "smartparkingsystem-55a05",
+      storageBucket: "smartparkingsystem-55a05.firebasestorage.app",
+      messagingSenderId: "200855735860",
+      appId: "1:200855735860:web:369dd1116fc4ab21148461",
+      measurementId: "G-XHXNGLQBFH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-/* ===== 2) Helpers ===== */
-const $ = (id)=>document.getElementById(id);
-const fmt = (t)=> t ? new Date(t).toLocaleString() : "—";
-const mapUrl = (loc)=> loc && loc.lat!=null && loc.lng!=null
-  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.lat+','+loc.lng)}`
-  : null;
+    const slotRef = db.ref("slots/1");
+    let countdownInterval;
 
-/* We keep one interval per slot to do a smooth countdown */
-const countdownTimers = new Map();
+    slotRef.on("value", snapshot => {
+      const data = snapshot.val();
+      if (!data) return;
+      updateSlotCard(data);
+    });
 
-/* ===== 3) Seed demo slots (only if you need to see something immediately) ===== */
-$("seedBtn").onclick = async ()=>{
-  const demo = {
-    S1:{ location:{name:"Basement A1",lat:-1.2921,lng:36.8219}, occupied:false },
-    S2:{ location:{name:"Basement A2",lat:-1.2922,lng:36.8220}, occupied:false },
-    S3:{ location:{name:"Ground B1", lat:-1.2919,lng:36.8221}, occupied:true  },
-    S4:{ location:{name:"Roof C5",   lat:-1.2925,lng:36.8223}, occupied:false }
-  };
-  await db.ref("slots").update(demo);
-  toast("Demo slots added.");
-};
-$("refreshBtn").onclick = ()=> db.ref("slots").once("value"); // nudge
+    function updateSlotCard(data) {
+      const card = document.getElementById("slotCard");
+      const statusDiv = card.querySelector(".status");
+      document.getElementById("location").innerText = "Location: " + (data.location || "N/A");
+      document.getElementById("arrival").innerText = data.arrivalTime ? "Arrival: " + data.arrivalTime : "";
+      document.getElementById("leaving").innerText = data.leavingTime ? "Leaving: " + data.leavingTime : "";
 
-/* ===== 4) Live subscribe & render ===== */
-db.ref("slots").on("value", (snap)=>{
-  const data = snap.val() || {};
-  renderGrid(data);
-});
+      clearInterval(countdownInterval);
 
-/* ===== 5) Render ===== */
-function renderGrid(slots){
-  const grid = $("grid");
-  grid.innerHTML = "";
-  const ids = Object.keys(slots);
-  $("empty").style.display = ids.length ? "none" : "block";
+      // Control buttons visibility
+      document.getElementById("cancelBtn").style.display = (data.status === "booked") ? "inline-block" : "none";
+      document.getElementById("bookBtn").disabled = (data.status !== "free");
 
-  // Clear timers for slots that no longer exist
-  for (const id of Array.from(countdownTimers.keys())){
-    if (!slots[id]) { clearTimer(id); }
-  }
-
-  ids.forEach(id=>{
-    const slot = slots[id] || {};
-    const card = document.createElement("div");
-
-    // Compute status
-    let status = "free";        // default
-    let booked = slot.booking || null;
-    const now = Date.now();
-
-    if (slot.occupied) {
-      status = "occupied";
-    } else if (booked) {
-      // expiry = arrival + 1 min
-      const arrivalMs = Date.parse(booked.arrival);
-      const expiresAt = isFinite(arrivalMs) ? (arrivalMs + 1*60*1000) : null;
-
-      if (expiresAt && now >= expiresAt) {
-        // Auto-cancel (remove booking)
-        db.ref(`slots/${id}/booking`).remove();
-        booked = null;
-        status = "free";
-      } else {
-        status = "booked";
+      if (data.status === "free") {
+        card.style.background = "green";
+        statusDiv.innerText = "🟢 Free";
+        document.getElementById("countdown").innerText = "";
+      }
+      else if (data.status === "booked") {
+        card.style.background = "orange";
+        statusDiv.innerText = "🟠 Booked";
+        startCountdown(new Date(data.arrivalTime));
+      }
+      else if (data.status === "occupied") {
+        card.style.background = "red";
+        statusDiv.innerText = "🔴 Occupied";
+        document.getElementById("countdown").innerText = "";
       }
     }
 
-    card.className = `card slot ${status}`;
+    function startCountdown(arrivalDate) {
+      countdownInterval = setInterval(() => {
+        const now = new Date();
+        const expiry = new Date(arrivalDate.getTime() + 1 * 60000);
+        const diff = expiry - now;
 
-    // Header
-    const pill = `<span class="status ${status}">${status.toUpperCase()}</span>`;
-    const locName = slot.location?.name || "—";
-    const map = mapUrl(slot.location);
-    const mapLink = map ? `<a class="map" href="${map}" target="_blank" rel="noopener">Map ↗</a>` : "";
+        if (diff <= 0) {
+          clearInterval(countdownInterval);
+          cancelBooking();
+          return;
+        }
 
-    // Booking details (if any)
-    let details = "";
-    if (booked){
-      const arrival = booked.arrival || "";
-      const leaving = booked.leaving || "";
-      const name = booked.name || "—";
-      const expiresAt = Date.parse(arrival) + 60000;
-      const remainingMs = Math.max(0, expiresAt - now);
-      details = `
-        <div class="muted">By: <b>${name}</b></div>
-        <div class="muted">Arrival: ${fmt(arrival)}</div>
-        <div class="muted">Leaving: ${fmt(leaving)}</div>
-        <div class="muted">Expires: ${fmt(expiresAt)} <span id="t-${id}" class="timer"></span></div>
-      `;
+        const seconds = Math.floor((diff / 1000) % 60);
+        const minutes = Math.floor((diff / 1000 / 60) % 60);
+        document.getElementById("countdown").innerText = `Time left: ${minutes}m ${seconds}s`;
+      }, 1000);
+    }
 
-      // Start or refresh the per-slot countdown
-      startTimer(id, remainingMs, ()=> {
-        // when it hits zero, remove booking in DB
-        db.ref(`slots/${id}/booking`).remove();
+    function bookSlot() {
+      const name = document.getElementById("name").value;
+      const arrival = document.getElementById("arrivalTime").value;
+      const leaving = document.getElementById("leavingTime").value;
+      if (!name || !arrival || !leaving) {
+        alert("Fill all fields");
+        return;
+      }
+
+      slotRef.update({
+        status: "booked",
+        name: name,
+        arrivalTime: arrival,
+        leavingTime: leaving,
+        location: "Main Entrance"
       });
-    } else {
-      clearTimer(id);
     }
 
-    // Inline booking form (only if free)
-    const form = status === "free" ? `
-      <div style="margin-top:8px">
-        <label>Name</label>
-        <input id="n-${id}" placeholder="Driver name">
-        <label style="margin-top:6px">Arrival</label>
-        <input id="a-${id}" type="datetime-local">
-        <label style="margin-top:6px">Leaving</label>
-        <input id="l-${id}" type="datetime-local">
-        <button class="btn" style="margin-top:8px;width:100%" onclick="book('${id}')">Book This Slot</button>
-      </div>
-    ` : "";
-
-    // Optional actions for booked/occupied
-    const actions = `
-      <div class="row" style="margin-top:10px">
-        <span class="muted">Location: <b>${locName}</b></span>
-        ${mapLink}
-      </div>
-    `;
-
-    card.innerHTML = `
-      <div class="row"><b>${id}</b> ${pill}</div>
-      ${details}
-      ${actions}
-      ${form}
-    `;
-
-    grid.appendChild(card);
-  });
-}
-
-/* ===== 6) Booking handler (per-slot) ===== */
-window.book = async function(slotId){
-  const name   = $(`n-${slotId}`).value.trim();
-  const arrival= $(`a-${slotId}`).value;
-  const leaving= $(`l-${slotId}`).value;
-
-  if (!name || !arrival || !leaving){
-    return toast("Please fill name, arrival and leaving.");
-  }
-  const slotRef = db.ref(`slots/${slotId}`);
-
-  // Transaction: only allow booking if free (not occupied and no booking present)
-  await slotRef.transaction(cur=>{
-    cur = cur || {};
-    if (cur.occupied) return;          // not free
-    if (cur.booking)  return;          // already booked
-    return {
-      ...cur,
-      booking: { name, arrival, leaving, createdAt: firebase.database.ServerValue.TIMESTAMP }
-    };
-  });
-  toast(`Booked ${slotId} for ${name}.`);
-};
-
-/* ===== 7) Countdown management ===== */
-function startTimer(id, remainingMs, onExpire){
-  clearTimer(id);
-  // Prime immediate display
-  updateTimerText(id, remainingMs);
-  const interval = setInterval(()=>{
-    remainingMs -= 1000;
-    if (remainingMs <= 0){
-      clearInterval(interval);
-      countdownTimers.delete(id);
-      updateTimerText(id, 0);
-      onExpire && onExpire();
-    } else {
-      updateTimerText(id, remainingMs);
+    function cancelBooking() {
+      slotRef.update({
+        status: "free",
+        name: null,
+        arrivalTime: null,
+        leavingTime: null,
+        location: "Main Entrance"
+      });
     }
-  }, 1000);
-  countdownTimers.set(id, interval);
-}
-
-function updateTimerText(id, ms){
-  const el = $(`t-${id}`);
-  if (!el) return;
-  const s = Math.max(0, Math.ceil(ms/1000));
-  el.textContent = ` (${s}s)`;
-}
-
-function clearTimer(id){
-  const t = countdownTimers.get(id);
-  if (t){ clearInterval(t); countdownTimers.delete(id); }
-  const el = $(`t-${id}`);
-  if (el) el.textContent = "";
-}
-
-/* ===== 8) Tiny toast ===== */
-function toast(msg){
-  $("note").textContent = msg;
-  setTimeout(()=> $("note").textContent = "Ready.", 3000);
-}
-</script>
+  </script>
 </body>
 </html>
