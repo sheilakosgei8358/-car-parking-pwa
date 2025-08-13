@@ -1,53 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Smart Parking — Slot S1</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Parking — Single Slot Dashboard</title>
 <style>
-:root{
-  --bg:#0f172a; --card:#0b1224; --muted:#9aa4b2;
-  --free:#16a34a; --booked:#f59e0b; --occ:#ef4444;
-  --free-bg:#d1fae5; --booked-bg:#fef3c7; --occ-bg:#fee2e2;
-  --border:#1f2937;
-}
-body{margin:0;background:#0b1022;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-header{background:#0b1022cc;border-bottom:1px solid var(--border);padding:14px 16px}
-header h1{margin:0;font-size:18px}
-header .sub{font-size:12px;color:var(--muted)}
-.container{max-width:500px;margin:16px auto;padding:0 16px}
-.btn{all:unset;background:#1f2937;border:1px solid #334155;padding:10px 12px;border-radius:10px;cursor:pointer;display:block;text-align:center;margin-top:8px}
-.btn:disabled{opacity:.6;cursor:not-allowed}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
-.slot.free{background:var(--free-bg);color:#052e16;border-color:#86efac}
-.slot.booked{background:var(--booked-bg);color:#7a4a00;border-color:#fde68a}
-.slot.occupied{background:var(--occ-bg);color:#7f1d1d;border-color:#fecaca}
-.status{font-size:12px;font-weight:700;padding:4px 8px;border-radius:999px}
-.status.free{background:var(--free);color:#052e16}
-.status.booked{background:var(--booked);color:#291400}
-.status.occupied{background:var(--occ);color:#2a0b0b}
-.muted{color:var(--muted);font-size:12px}
-label{font-size:12px;color:#0b1224;font-weight:600}
-input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #94a3b8;margin-top:4px}
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --free: #16a34a;
+    --booked: #f59e0b;
+    --occupied: #ef4444;
+    --muted: #64748b;
+  }
+  body {
+    margin:0; font-family: Arial, sans-serif; background: var(--bg); color: #0f172a;
+  }
+  header {
+    background: #1e293b; color: #fff; padding: 16px; text-align: center;
+  }
+  header h1 { margin:0; font-size: 20px; }
+  header .sub { font-size: 12px; margin-top:4px; color:#cbd5e1; }
+  .container { max-width: 500px; margin: 20px auto; }
+  .card {
+    background: var(--card); padding:16px; border-radius:12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1); border:1px solid var(--border);
+  }
+  .status {
+    display:inline-block; padding:4px 8px; border-radius:999px; font-weight:700; font-size:12px;
+    color:#fff;
+  }
+  .status.free { background: var(--free); }
+  .status.booked { background: var(--booked); }
+  .status.occupied { background: var(--occupied); }
+  label { display:block; margin-top:12px; font-weight:600; font-size:12px; color:#0f172a; }
+  input { width:100%; padding:8px; margin-top:4px; border-radius:6px; border:1px solid #cbd5e1; }
+  .btn { margin-top:12px; width:100%; padding:10px; border:none; border-radius:8px; background:#1e40af; color:#fff; font-weight:600; cursor:pointer; }
+  .btn:disabled { opacity:0.6; cursor:not-allowed; }
+  .muted { font-size:12px; color: var(--muted); margin-top:4px; }
+  #map { width:100%; height:200px; margin-top:12px; border-radius:8px; border:1px solid var(--border); }
 </style>
 </head>
 <body>
+
 <header>
   <h1>🚗 Smart Parking — Slot S1</h1>
   <div class="sub" id="note">Ready.</div>
 </header>
 
 <div class="container">
-  <div id="slotCard"></div>
+  <div id="slotCard" class="card"></div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-database-compat.js"></script>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
   authDomain: "smartparkingsystem-55a05.firebaseapp.com",
-  databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/",
+  databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
   projectId: "smartparkingsystem-55a05",
   storageBucket: "smartparkingsystem-55a05.firebasestorage.app",
   messagingSenderId: "200855735860",
@@ -57,104 +71,110 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const $ = id => document.getElementById(id);
-
+const $ = id=>document.getElementById(id);
 let timerInt = null;
 
-// Render slot card
 function render(slot){
   clearInterval(timerInt);
-  const now = Date.now()/1000;
-  let status = slot.occupied ? "occupied" : "free";
+  const now = Date.now();
+  let status = "free";
+  let booked = slot.booking || null;
+
+  if(slot.occupied) status="occupied";
+  else if(booked){
+    const arrivalMs = new Date(booked.arrival).getTime();
+    if(now < arrivalMs){
+      status="free"; // slot is free until booking time
+    } else if(now >= arrivalMs && now <= arrivalMs + 60000){
+      status="booked"; // 1-min grace
+    } else {
+      booked=null;
+      status="free";
+      db.ref("slots/S1/booking").remove();
+    }
+  }
 
   const card = document.createElement("div");
-  card.className = `card slot ${status}`;
-
-  // Real-time status
   card.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center">
       <b>S1</b>
       <span class="status ${status}">${status.toUpperCase()}</span>
     </div>
+    ${booked ? `
+      <div class="muted">Booked by: <b>${booked.name}</b></div>
+      <div class="muted">Arrival: ${new Date(booked.arrival).toLocaleString()}</div>
+      <div class="muted">Leaving: ${new Date(booked.leaving).toLocaleString()}</div>
+      <div class="muted">Countdown: <span id="timer"></span></div>
+      <button class="btn" onclick="cancelBooking()">Cancel Booking</button>
+    ` : `
+      <label>Name</label><input id="name">
+      <label>Arrival</label><input id="arrival" type="datetime-local">
+      <label>Leaving</label><input id="leaving" type="datetime-local">
+      <button class="btn" onclick="bookSlot()">Book Slot</button>
+    `}
+    <div id="map"></div>
   `;
-
-  // Upcoming booking
-  if (slot.booking && slot.booking.arrivalTs > now){
-    const arrival = new Date(slot.booking.arrivalTs*1000).toLocaleString();
-    const leaving = new Date(slot.booking.leavingTs*1000).toLocaleString();
-    card.innerHTML += `
-      <div class="muted" style="margin-top:8px">
-        Booked for: <b>${arrival} – ${leaving}</b><br>
-        By: <b>${slot.booking.name}</b><br>
-        Location: <b>${slot.booking.location}</b><br>
-        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(slot.booking.location)}" target="_blank" class="muted">Map ↗</a>
-      </div>
-    `;
-  }
-
-  // Booking form if free
-  if (status === "free" && (!slot.booking || slot.booking.arrivalTs <= now)){
-    card.innerHTML += `
-      <div style="margin-top:8px">
-        <label>Name</label>
-        <input id="name">
-        <label>Arrival</label>
-        <input id="arrival" type="datetime-local">
-        <label>Leaving</label>
-        <input id="leaving" type="datetime-local">
-        <label>Location</label>
-        <input id="location" placeholder="e.g., Nairobi CBD, Kenyatta Avenue">
-        <button class="btn" onclick="bookSlot()">Book Slot</button>
-      </div>
-    `;
-  }
-
-  // Cancel / toggle buttons
-  if (slot.booking) card.innerHTML += `<button class="btn" onclick="cancelBooking()">Cancel Booking</button>`;
-  card.innerHTML += `<button class="btn" onclick="toggleOccupied()">${slot.occupied ? "Mark as Free" : "Mark as Occupied"}</button>`;
-
   $("slotCard").innerHTML = "";
   $("slotCard").appendChild(card);
+
+  // Google Maps
+  initMap(slot.location);
+
+  // Timer
+  if(booked){
+    let remaining = new Date(booked.arrival).getTime() - now;
+    updateTimer(remaining);
+    timerInt=setInterval(()=>{
+      remaining -=1000;
+      updateTimer(remaining);
+      if(remaining<=0){
+        clearInterval(timerInt);
+      }
+    },1000);
+  }
+}
+
+function updateTimer(ms){
+  const el=$("timer");
+  if(el) el.textContent=`${Math.max(0, Math.ceil(ms/1000))}s`;
 }
 
 function toast(msg){
-  $("note").textContent = msg;
-  setTimeout(()=> $("note").textContent = "Ready.", 3000);
+  $("note").textContent=msg;
+  setTimeout(()=>$("note").textContent="Ready.",3000);
 }
 
-// Booking
 function bookSlot(){
-  const name = $("name").value.trim();
-  const arrival = $("arrival").value;
-  const leaving = $("leaving").value;
-  const location = $("location").value.trim() || "Nairobi CBD, Kenyatta Avenue";
-
-  if (!name || !arrival || !leaving) return toast("Fill all fields!");
-  
-  const arrivalTs = Math.floor(new Date(arrival).getTime()/1000);
-  const leavingTs = Math.floor(new Date(leaving).getTime()/1000);
-
-  db.ref("slots/S1/booking").set({name, arrival, leaving, location, arrivalTs, leavingTs});
-  toast(`Booked for ${name}`);
+  const name=$("name").value.trim();
+  const arrival=$("arrival").value;
+  const leaving=$("leaving").value;
+  if(!name||!arrival||!leaving){ toast("Fill all fields!"); return; }
+  db.ref("slots/S1").transaction(cur=>{
+    cur=cur||{};
+    if(cur.occupied||cur.booking) return;
+    return {...cur, booking:{name, arrival, leaving}, location:{name:"Nairobi CBD - Kenyatta Avenue", lat:-1.28333, lng:36.81667}};
+  });
 }
 
-// Cancel booking
 function cancelBooking(){
   db.ref("slots/S1/booking").remove();
 }
 
-// Toggle occupied manually
-function toggleOccupied(){
-  db.ref("slots/S1").once("value").then(snap=>{
-    const val = snap.val() || {};
-    db.ref("slots/S1/occupied").set(!val.occupied);
-  });
+function initMap(location){
+  if(!location) location={lat:-1.28333,lng:36.81667};
+  const mapDiv=$("map");
+  mapDiv.innerHTML="";
+  const iframe=document.createElement("iframe");
+  iframe.width="100%"; iframe.height="200"; iframe.style.border="0";
+  iframe.src=`https://www.google.com/maps/embed/v1/place?key=AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74&q=${encodeURIComponent(location.name)}`;
+  mapDiv.appendChild(iframe);
 }
 
-// Listen to Firebase
+// Live Firebase subscription
 db.ref("slots/S1").on("value", snap=>{
-  render(snap.val() || {});
+  render(snap.val()||{});
 });
 </script>
+
 </body>
 </html>
