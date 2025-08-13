@@ -71,10 +71,11 @@ function render(slot){
   if (slot.occupied) status = "occupied";
   else if (booked) {
     const arrivalMs = Date.parse(booked.arrival);
-    const expiresAt = arrivalMs + 60000;
+    const expiresAt = arrivalMs + 60000; // 1 minute grace
     if (now >= expiresAt) {
       db.ref("slots/S1/booking").remove();
       booked = null;
+      status = "free";
     } else {
       status = "booked";
     }
@@ -108,7 +109,7 @@ function render(slot){
   $("slotCard").innerHTML = "";
   $("slotCard").appendChild(card);
 
-  // Start timer if booked
+  // Start countdown if booked
   if (booked){
     let remaining = (Date.parse(booked.arrival)+60000) - now;
     updateTimer(remaining);
@@ -141,21 +142,25 @@ function bookSlot(){
   db.ref("slots/S1").transaction(cur=>{
     cur = cur || {};
     if (cur.occupied || cur.booking) return;
-    return {...cur, booking:{name, arrival, leaving}};
+    return {...cur, booking:{name, arrival, leaving}, status:"booked"};
   });
 }
 
 function cancelBooking(){
   db.ref("slots/S1/booking").remove();
+  db.ref("slots/S1/status").set("free");
 }
 
 function toggleOccupied(){
   db.ref("slots/S1").once("value").then(snap=>{
     const val = snap.val() || {};
-    db.ref("slots/S1/occupied").set(!val.occupied);
+    const newOcc = !val.occupied;
+    db.ref("slots/S1/occupied").set(newOcc);
+    db.ref("slots/S1/status").set(newOcc ? "occupied" : (val.booking ? "booked" : "free"));
   });
 }
 
+// Live Firebase updates
 db.ref("slots/S1").on("value", snap=>{
   render(snap.val() || {});
 });
