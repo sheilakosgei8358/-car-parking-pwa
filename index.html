@@ -1,147 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Parking - Single Slot</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      text-align: center;
-      padding: 20px;
-    }
-    .slot {
-      border-radius: 10px;
-      padding: 20px;
-      max-width: 350px;
-      margin: auto;
-      color: white;
-    }
-    .status {
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .countdown {
-      font-size: 20px;
-      margin-top: 10px;
-    }
-    input, button, select {
-      margin: 5px;
-      padding: 8px;
-      font-size: 14px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Smart Parking — Single Slot</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#0b1224; --muted:#9aa4b2;
+    --free:#16a34a; --booked:#f59e0b; --occ:#ef4444;
+    --free-bg:#d1fae5; --booked-bg:#fef3c7; --occ-bg:#fee2e2;
+    --border:#1f2937;
+  }
+  body{margin:0;background:#0b1022;color:#e5e7eb;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  header{background:#0b1022cc;border-bottom:1px solid var(--border);padding:14px 16px}
+  header h1{margin:0;font-size:18px}
+  header .sub{font-size:12px;color:var(--muted)}
+  .container{max-width:500px;margin:16px auto;padding:0 16px}
+  .btn{all:unset;background:#1f2937;border:1px solid #334155;padding:10px 12px;border-radius:10px;cursor:pointer;display:block;text-align:center;margin-top:8px}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+  .slot.free{background:var(--free-bg);color:#052e16;border-color:#86efac}
+  .slot.booked{background:var(--booked-bg);color:#7a4a00;border-color:#fde68a}
+  .slot.occupied{background:var(--occ-bg);color:#7f1d1d;border-color:#fecaca}
+  .status{font-size:12px;font-weight:700;padding:4px 8px;border-radius:999px}
+  .status.free{background:var(--free);color:#052e16}
+  .status.booked{background:var(--booked);color:#291400}
+  .status.occupied{background:var(--occ);color:#2a0b0b}
+  .muted{color:var(--muted);font-size:12px}
+  label{font-size:12px;color:#0b1224;font-weight:600}
+  input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #94a3b8}
+  .timer{font-variant-numeric:tabular-nums;font-weight:700}
+</style>
 </head>
 <body>
-  <h1>Smart Parking - Slot 1</h1>
-  
-  <div id="slotCard" class="slot">
-    <div class="status">Loading...</div>
-    <div id="location"></div>
-    <div id="arrival"></div>
-    <div id="leaving"></div>
-    <div id="countdown" class="countdown"></div>
-  </div>
+<header>
+  <h1>🚗 Smart Parking — Slot S1</h1>
+  <div class="sub" id="note">Ready.</div>
+</header>
 
-  <h2>Book Slot</h2>
-  <input type="text" id="name" placeholder="Your Name"><br>
-  <input type="datetime-local" id="arrivalTime"><br>
-  <input type="datetime-local" id="leavingTime"><br>
-  <button onclick="bookSlot()">Book</button>
+<div class="container">
+  <div id="slotCard"></div>
+</div>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script>
-    // === Firebase Config ===
-    const firebaseConfig = {
-      apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
-      authDomain: "smartparkingsystem-55a05.firebaseapp.com",
-      databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
-      projectId: "smartparkingsystem-55a05",
-      storageBucket: "smartparkingsystem-55a05.firebasestorage.app",
-      messagingSenderId: "200855735860",
-      appId: "1:200855735860:web:369dd1116fc4ab21148461",
-      measurementId: "G-XHXNGLQBFH"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.8/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC83XNFywh1cxT-0ty6pM9d_mIevHUzI74",
+  authDomain: "smartparkingsystem-55a05.firebaseapp.com",
+  databaseURL: "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com",
+  projectId: "smartparkingsystem-55a05",
+  storageBucket: "smartparkingsystem-55a05.firebasestorage.app",
+  messagingSenderId: "200855735860",
+  appId: "1:200855735860:web:369dd1116fc4ab21148461",
+  measurementId: "G-XHXNGLQBFH"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    const slotRef = db.ref("slots/1");
-    let countdownInterval;
+const $ = id => document.getElementById(id);
+const fmt = t => t ? new Date(t).toLocaleString() : "—";
+let timerInt = null;
 
-    // Listen for changes
-    slotRef.on("value", snapshot => {
-      const data = snapshot.val();
-      if (!data) return;
-      updateSlotCard(data);
-    });
+function render(slot){
+  clearInterval(timerInt);
+  const now = Date.now();
+  let status = "free";
+  let booked = slot.booking || null;
 
-    function updateSlotCard(data) {
-      const card = document.getElementById("slotCard");
-      const statusDiv = card.querySelector(".status");
-      document.getElementById("location").innerText = "Location: " + (data.location || "N/A");
-      document.getElementById("arrival").innerText = data.arrivalTime ? "Arrival: " + data.arrivalTime : "";
-      document.getElementById("leaving").innerText = data.leavingTime ? "Leaving: " + data.leavingTime : "";
-
-      clearInterval(countdownInterval);
-
-      if (data.status === "free") {
-        card.style.background = "green";
-        statusDiv.innerText = "🟢 Free";
-        document.getElementById("countdown").innerText = "";
-      }
-      else if (data.status === "booked") {
-        card.style.background = "orange";
-        statusDiv.innerText = "🟠 Booked";
-        startCountdown(new Date(data.arrivalTime), data);
-      }
-      else if (data.status === "occupied") {
-        card.style.background = "red";
-        statusDiv.innerText = "🔴 Occupied";
-        document.getElementById("countdown").innerText = "";
-      }
+  if (slot.occupied) status = "occupied";
+  else if (booked) {
+    const arrivalMs = Date.parse(booked.arrival);
+    const expiresAt = arrivalMs + 60000;
+    if (now >= expiresAt) {
+      db.ref("slots/S1/booking").remove();
+      booked = null;
+    } else {
+      status = "booked";
     }
+  }
 
-    function startCountdown(arrivalDate, data) {
-      countdownInterval = setInterval(() => {
-        const now = new Date();
-        const expiry = new Date(arrivalDate.getTime() + 1 * 60000); // +1 minute
-        const diff = expiry - now;
+  const card = document.createElement("div");
+  card.className = `card slot ${status}`;
+  card.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>S1</b>
+      <span class="status ${status}">${status.toUpperCase()}</span>
+    </div>
+    ${booked ? `
+      <div class="muted">By: <b>${booked.name}</b></div>
+      <div class="muted">Arrival: ${fmt(booked.arrival)}</div>
+      <div class="muted">Leaving: ${fmt(booked.leaving)}</div>
+      <div class="muted">Expires: ${fmt(Date.parse(booked.arrival)+60000)} <span id="timer"></span></div>
+      <button class="btn" onclick="cancelBooking()">Cancel Booking</button>
+    ` : `
+      <label>Name</label>
+      <input id="name">
+      <label>Arrival</label>
+      <input id="arrival" type="datetime-local">
+      <label>Leaving</label>
+      <input id="leaving" type="datetime-local">
+      <button class="btn" onclick="bookSlot()">Book Slot</button>
+    `}
+    <button class="btn" onclick="toggleOccupied()">${slot.occupied ? "Mark as Free" : "Mark as Occupied"}</button>
+  `;
 
-        if (diff <= 0) {
-          clearInterval(countdownInterval);
-          slotRef.update({
-            status: "free",
-            name: null,
-            arrivalTime: null,
-            leavingTime: null
-          });
-          return;
-        }
+  $("slotCard").innerHTML = "";
+  $("slotCard").appendChild(card);
 
-        const seconds = Math.floor((diff / 1000) % 60);
-        const minutes = Math.floor((diff / 1000 / 60) % 60);
-        document.getElementById("countdown").innerText = `Time left: ${minutes}m ${seconds}s`;
-      }, 1000);
-    }
-
-    function bookSlot() {
-      const name = document.getElementById("name").value;
-      const arrival = document.getElementById("arrivalTime").value;
-      const leaving = document.getElementById("leavingTime").value;
-      if (!name || !arrival || !leaving) {
-        alert("Fill all fields");
-        return;
+  // Start timer if booked
+  if (booked){
+    let remaining = (Date.parse(booked.arrival)+60000) - now;
+    updateTimer(remaining);
+    timerInt = setInterval(()=>{
+      remaining -= 1000;
+      updateTimer(remaining);
+      if (remaining <= 0){
+        clearInterval(timerInt);
+        db.ref("slots/S1/booking").remove();
       }
+    }, 1000);
+  }
+}
 
-      slotRef.update({
-        status: "booked",
-        name: name,
-        arrivalTime: arrival,
-        leavingTime: leaving,
-        location: "Main Entrance"
-      });
-    }
-  </script>
+function updateTimer(ms){
+  const el = $("timer");
+  if (el) el.textContent = ` (${Math.max(0, Math.ceil(ms/1000))}s)`;
+}
+
+function toast(msg){
+  $("note").textContent = msg;
+  setTimeout(()=> $("note").textContent = "Ready.", 3000);
+}
+
+function bookSlot(){
+  const name = $("name").value.trim();
+  const arrival = $("arrival").value;
+  const leaving = $("leaving").value;
+  if (!name || !arrival || !leaving) return toast("Fill all fields!");
+  db.ref("slots/S1").transaction(cur=>{
+    cur = cur || {};
+    if (cur.occupied || cur.booking) return;
+    return {...cur, booking:{name, arrival, leaving}};
+  });
+}
+
+function cancelBooking(){
+  db.ref("slots/S1/booking").remove();
+}
+
+function toggleOccupied(){
+  db.ref("slots/S1").once("value").then(snap=>{
+    const val = snap.val() || {};
+    db.ref("slots/S1/occupied").set(!val.occupied);
+  });
+}
+
+db.ref("slots/S1").on("value", snap=>{
+  render(snap.val() || {});
+});
+</script>
 </body>
 </html>
