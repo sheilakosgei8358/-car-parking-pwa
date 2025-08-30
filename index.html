@@ -58,22 +58,68 @@
 <script>
 const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/S1.json";
 
+// Helper: convert HH:MM to minutes
+function toMinutes(hhmm){
+  if(!hhmm || hhmm.length<5) return null;
+  const h = parseInt(hhmm.substring(0,2));
+  const m = parseInt(hhmm.substring(3,5));
+  return h*60 + m;
+}
+
 // Load slot status
 async function loadStatus(){
   const res = await fetch(firebaseURL);
   const data = await res.json();
   const statusDiv = document.getElementById("slotStatus");
-  if(data){
-    if(data.state === "free") statusDiv.style.background = "var(--free)";
-    else if(data.state === "booked") statusDiv.style.background = "var(--booked)";
-    else if(data.state === "occupied") statusDiv.style.background = "var(--occ)";
-    statusDiv.textContent = `${data.state.toUpperCase()} ${data.name ? "- " + data.name : ""}`;
-  } else {
+
+  if(!data){ 
     statusDiv.style.background = "gray";
     statusDiv.textContent = "Unknown";
+    return;
+  }
+
+  let state = data.state;
+  const now = new Date();
+  const nowHM = now.getHours().toString().padStart(2,"0") + ":" + now.getMinutes().toString().padStart(2,"0");
+  const nowMin = toMinutes(nowHM);
+  const arrMin = toMinutes(data.arrivalTime || "");
+  const leaveMin = toMinutes(data.leaveTime || "");
+
+  // --- Booking logic for display ---
+  if(state === "booked" && arrMin){
+    // reserved window: arrival-15 up to arrival
+    if(nowMin >= (arrMin-15) && nowMin < arrMin){
+      state = "reserved";
+    } 
+    // booking expired if late >1 min
+    else if(nowMin > arrMin+1){
+      state = "free";
+    }
+  }
+  if(state === "occupied" && leaveMin && nowMin >= leaveMin){
+    state = "free"; // free after leaveTime
+  }
+
+  // --- Display ---
+  if(state === "free"){
+    statusDiv.style.background = "var(--free)";
+    statusDiv.textContent = "FREE";
+  }
+  else if(state === "booked"){
+    statusDiv.style.background = "var(--booked)";
+    statusDiv.textContent = "BOOKED - " + (data.name || "");
+  }
+  else if(state === "reserved"){
+    statusDiv.style.background = "var(--booked)";
+    statusDiv.textContent = "RESERVED - " + (data.name || "");
+  }
+  else if(state === "occupied"){
+    statusDiv.style.background = "var(--occ)";
+    statusDiv.textContent = "OCCUPIED - " + (data.name || "");
   }
 }
 
+// Booking submit
 document.getElementById("bookingForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const name = document.getElementById("name").value;
@@ -93,6 +139,7 @@ document.getElementById("bookingForm").addEventListener("submit", async e=>{
   loadStatus();
 });
 
+// Cancel booking
 document.getElementById("cancelBtn").addEventListener("click", async ()=>{
   const payload = {state:"free", name:"", arrivalTime:"", leaveTime:""};
   await fetch(firebaseURL, {
