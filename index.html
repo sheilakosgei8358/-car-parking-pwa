@@ -2,116 +2,102 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Parking Dashboard</title>
+<title>Smart Parking System</title>
 <style>
   body {
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
-    margin: 0;
-    padding: 20px;
-  }
-
-  h1 { text-align: center; margin-bottom: 20px; }
-
-  .container {
-    display: flex;
-    gap: 40px;
-    justify-content: center;
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .parking-map, .booking-panel {
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.15);
-  }
-
-  .parking-map {
-    display: flex;
-    flex-direction: row;
-    gap: 15px;
-    min-width: 300px;
-  }
-
-  .slot {
-    width: 80px;
-    height: 120px;
-    border-radius: 8px;
-    color: #fff;
-    font-weight: bold;
-    line-height: 120px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f2f5;
     text-align: center;
-    font-size: 14px;
-    transition: background 0.3s;
+    margin: 0;
+    padding: 0;
   }
-
-  .free { background: green; }
-  .booked { background: orange; }
-  .occupied { background: red; }
-  .non-booking { background: #888; }
-
-  .booking-panel {
-    min-width: 250px;
-  }
-
-  .booking-panel label {
-    display: block;
-    margin-top: 10px;
-  }
-
-  .booking-panel input {
-    width: 90%;
-    padding: 5px;
-    margin-top: 5px;
-  }
-
-  .booking-panel button {
-    margin-top: 15px;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
+  header {
     background: #0077cc;
-    color: #fff;
+    color: white;
+    padding: 15px;
+    font-size: 1.5em;
+  }
+  #parkingArea {
+    display: flex;
+    justify-content: center;
+    margin: 30px;
+    gap: 20px;
+  }
+  .slot {
+    width: 150px;
+    height: 150px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.1em;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  }
+  .FREE { background: green; }
+  .BOOKED { background: orange; }
+  .RESERVED { background: darkorange; }
+  .OCCUPIED { background: red; }
+
+  #bookingForm {
+    background: white;
+    display: inline-block;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    margin-bottom: 30px;
+  }
+  #bookingForm input, #bookingForm button {
+    display: block;
+    width: 90%;
+    margin: 10px auto;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+  }
+  #bookingForm button {
+    background: #0077cc;
+    color: white;
+    border: none;
     cursor: pointer;
   }
-  .booking-panel button:hover { background: #005fa3; }
+  #bookingForm button:hover { background: #005fa3; }
 
-  #countdown { margin-top: 10px; font-size: 14px; color: #333; }
+  #countdown {
+    font-size: 1em;
+    margin-top: 10px;
+    color: #333;
+  }
 </style>
 </head>
 <body>
 
-<h1>Smart Parking System</h1>
-<div class="container">
-  <!-- Parking Map -->
-  <div class="parking-map">
-    <div class="slot free" id="slot1">Slot 1</div>
-    <div class="slot non-booking">No Booking</div>
-  </div>
+<header>Smart Parking System</header>
 
-  <!-- Booking Panel -->
-  <div class="booking-panel">
-    <h3>Book Your Slot</h3>
-    <form id="bookingForm">
-      <label>Name:</label>
-      <input type="text" id="name" required>
-      <label>Arrival Time (HH:MM):</label>
-      <input type="time" id="arrival" required>
-      <label>Leave Time (HH:MM):</label>
-      <input type="time" id="leave" required>
-      <button type="submit">Book Slot</button>
-    </form>
-    <button id="cancelBtn" style="background:red;">Cancel Booking</button>
-    <div id="countdown"></div>
+<div id="parkingArea">
+  <div class="slot FREE" id="slot1">
+    <div>Slot 1</div>
+    <div id="status1">Loading...</div>
+    <div id="countdown1"></div>
   </div>
+</div>
+
+<div id="bookingForm">
+  <h3>Book Slot</h3>
+  <input type="text" id="name" placeholder="Your Name" required>
+  <input type="time" id="arrival" required>
+  <input type="time" id="leave" required>
+  <button id="bookBtn">Book</button>
+  <button id="cancelBtn" style="background:red;color:white;">Cancel Booking</button>
 </div>
 
 <script>
 const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/S1.json";
 
+// Convert HH:MM to minutes
 function toMinutes(hhmm){
   if(!hhmm || hhmm.length < 5) return null;
   const h = parseInt(hhmm.substring(0,2));
@@ -119,7 +105,8 @@ function toMinutes(hhmm){
   return h*60 + m;
 }
 
-async function writeState(state, data={}){
+// Write state to Firebase
+async function writeState(state, data={}) {
   const payload = {
     state: state,
     name: data.name || "",
@@ -128,19 +115,21 @@ async function writeState(state, data={}){
   };
   await fetch(firebaseURL, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify(payload)
   });
 }
 
-async function loadStatus(){
+// Load slot status from Firebase
+async function loadStatus() {
   const res = await fetch(firebaseURL);
   const data = await res.json();
-  const slotEl = document.getElementById("slot1");
-  const countdownEl = document.getElementById("countdown");
-  countdownEl.textContent = "";
-
   if(!data) return;
+
+  const slotDiv = document.getElementById("slot1");
+  const statusDiv = document.getElementById("status1");
+  const countdownDiv = document.getElementById("countdown1");
+  countdownDiv.textContent = "";
 
   let state = data.state;
   const now = new Date();
@@ -148,55 +137,57 @@ async function loadStatus(){
   const arrMin = toMinutes(data.arrivalTime);
   const leaveMin = toMinutes(data.leaveTime);
 
-  if(state === "booked" && arrMin){
-    if(nowMin >= arrMin && nowMin < leaveMin){
-      state = "occupied";
-    } else if(nowMin > arrMin + 1){
-      state = "free";
-      await writeState("free");
+  // Booking logic
+  if(state === "BOOKED" && arrMin){
+    if(nowMin >= arrMin - 1 && nowMin < arrMin + 1){
+      state = "RESERVED";
+      await writeState("RESERVED", data);
+    }
+    else if(nowMin >= arrMin + 1){
+      state = "FREE";
+      await writeState("FREE");
     }
   }
-  if(state === "occupied" && leaveMin && nowMin >= leaveMin){
-    state = "free";
-    await writeState("free");
+  if((state === "BOOKED" || state === "RESERVED") && leaveMin && nowMin >= leaveMin){
+    state = "FREE";
+    await writeState("FREE");
   }
 
-  slotEl.className = "slot " + state;
-  slotEl.textContent = state.toUpperCase();
+  // Display state
+  slotDiv.className = "slot " + state;
+  statusDiv.textContent = state;
 
-  if(state === "booked" && arrMin){
+  // Countdown
+  if(state === "BOOKED" && arrMin){
     const minsLeft = arrMin - nowMin;
-    countdownEl.textContent = "Reserved starts in " + minsLeft + " min";
-  } else if(state === "occupied" && leaveMin){
+    countdownDiv.textContent = "Starts in " + (minsLeft>0?minsLeft:"0") + " min";
+  }
+  else if(state === "RESERVED" && leaveMin){
     const minsLeft = leaveMin - nowMin;
-    countdownEl.textContent = "Time left: " + minsLeft + " min";
+    countdownDiv.textContent = "Leaving in " + (minsLeft>0?minsLeft:"0") + " min";
   }
 }
 
-document.getElementById("bookingForm").addEventListener("submit", async e=>{
-  e.preventDefault();
+// Booking
+document.getElementById("bookBtn").addEventListener("click", async ()=>{
   const payload = {
-    state: "booked",
+    state: "BOOKED",
     name: document.getElementById("name").value,
     arrivalTime: document.getElementById("arrival").value,
     leaveTime: document.getElementById("leave").value
   };
-  await fetch(firebaseURL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  await writeState("BOOKED", payload);
   loadStatus();
 });
 
+// Cancel Booking
 document.getElementById("cancelBtn").addEventListener("click", async ()=>{
-  await writeState("free");
+  await writeState("FREE");
   loadStatus();
 });
 
 setInterval(loadStatus, 2000);
 loadStatus();
 </script>
-
 </body>
 </html>
