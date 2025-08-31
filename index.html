@@ -2,127 +2,82 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Parking Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<title>Smart Parking System</title>
 <style>
   body {
-    margin: 0;
-    font-family: 'Roboto', sans-serif;
+    font-family: Arial, sans-serif;
     background: #f0f2f5;
+    text-align: center;
+    padding: 30px;
+  }
+  h1 { margin-bottom: 20px; }
+  #slotStatus {
+    width: 280px;
+    margin: 0 auto 10px;
+    padding: 20px;
+    border-radius: 12px;
+    font-weight: bold;
+    color: white;
+    font-size: 18px;
+  }
+  #countdown {
+    font-size: 14px;
     color: #333;
-  }
-  header {
-    background: #0077cc;
-    color: #fff;
-    padding: 20px;
-    text-align: center;
-    font-size: 1.8em;
-    font-weight: 700;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  }
-  main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-  }
-  .slot-card {
-    width: 300px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    padding: 20px;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  .slot-status {
-    font-size: 1.2em;
-    font-weight: 700;
-    color: #fff;
-    padding: 10px 0;
-    border-radius: 8px;
-    margin-bottom: 10px;
-  }
-  .slot-status.free { background: #28a745; }
-  .slot-status.booked { background: #ff9800; }
-  .slot-status.occupied { background: #dc3545; }
-  .countdown {
-    font-size: 0.9em;
-    color: #555;
-    margin-bottom: 15px;
-  }
-  form {
-    width: 300px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    padding: 20px;
     margin-bottom: 20px;
   }
-  form label { display: block; margin-top: 10px; font-weight: 500; }
-  form input {
-    width: 100%;
-    padding: 8px;
-    margin-top: 5px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+  .form-box {
+    background: white;
+    width: 300px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.2);
   }
-  form button {
-    width: 100%;
+  label { display:block; margin-top: 10px; }
+  input { width: 90%; padding: 6px; margin-top:4px; border-radius:4px; border:1px solid #ccc; }
+  button {
     margin-top: 15px;
-    padding: 10px;
-    background: #0077cc;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 700;
+    padding: 10px 20px;
+    border:none;
+    border-radius:6px;
+    background:#0077cc;
+    color:white;
+    cursor:pointer;
   }
-  form button:hover { background: #005fa3; }
-  #cancelBtn {
-    width: 300px;
-    padding: 10px;
-    background: #dc3545;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 700;
-    margin-bottom: 40px;
-  }
-  #cancelBtn:hover { background: #a71d2a; }
+  button:hover { background:#005fa3; }
+  #cancelBtn { background:red; margin-top:10px; }
 </style>
 </head>
 <body>
-<header>Smart Parking Dashboard</header>
-<main>
-  <div class="slot-card">
-    <div id="slotStatus" class="slot-status">Loading...</div>
-    <div id="countdown" class="countdown"></div>
-  </div>
+<h1>Smart Parking System</h1>
 
+<div id="slotStatus">Loading...</div>
+<div id="countdown"></div>
+
+<div class="form-box">
   <form id="bookingForm">
-    <label for="name">Name:</label>
+    <label>Name:</label>
     <input type="text" id="name" required>
-    <label for="arrival">Arrival Time:</label>
+    <label>Arrival Time:</label>
     <input type="time" id="arrival" required>
-    <label for="leave">Leave Time:</label>
+    <label>Leave Time:</label>
     <input type="time" id="leave" required>
     <button type="submit">Book Slot</button>
   </form>
   <button id="cancelBtn">Cancel Booking</button>
-</main>
+</div>
 
 <script>
 const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/S1.json";
 
+// Convert HH:MM to minutes
 function toMinutes(hhmm){
-  if(!hhmm) return -1;
+  if(!hhmm || hhmm.length<5) return null;
   return parseInt(hhmm.substring(0,2))*60 + parseInt(hhmm.substring(3,5));
 }
 
-async function writeState(state, data={}){
+// Write state to Firebase
+async function writeState(state,data={}){
   const payload = {
     state: state,
     name: data.name || "",
@@ -136,10 +91,11 @@ async function writeState(state, data={}){
   });
 }
 
+// Load slot status and countdown
 async function loadStatus(){
   const res = await fetch(firebaseURL);
   const data = await res.json();
-  const statusDiv = document.getElementById("slotStatus");
+  const slotDiv = document.getElementById("slotStatus");
   const countdownDiv = document.getElementById("countdown");
   countdownDiv.textContent = "";
 
@@ -148,64 +104,61 @@ async function loadStatus(){
   let state = data.state;
   const now = new Date();
   const nowMin = now.getHours()*60 + now.getMinutes();
-  const nowSec = now.getSeconds();
   const arrMin = toMinutes(data.arrivalTime);
   const leaveMin = toMinutes(data.leaveTime);
 
-  // Auto cancel if user late (>1 min)
-  if(state==="booked" && arrMin!=-1 && nowMin>arrMin+1){
+  // Automatic expiry if late
+  if(state==="booked" && arrMin && nowMin>arrMin+1){
     state="free";
-    await writeState("free");
+    writeState("free");
   }
 
-  // Auto release after leave time
-  if((state==="booked" || state==="occupied") && leaveMin!=-1 && nowMin>=leaveMin){
+  // Auto-release after leave
+  if((state==="booked" || state==="occupied") && leaveMin && nowMin>=leaveMin){
     state="free";
-    await writeState("free");
+    writeState("free");
   }
 
   // Display
   if(state==="free"){
-    statusDiv.className="slot-status free";
-    statusDiv.textContent="FREE";
+    slotDiv.style.background="green";
+    slotDiv.textContent="FREE";
   } else if(state==="booked"){
-    statusDiv.className="slot-status booked";
-    statusDiv.textContent="BOOKED - "+(data.name||"");
-    if(arrMin!=-1 && nowMin<arrMin){
-      const totalSec = (arrMin-nowMin-1)*60 + (60-nowSec);
-      countdownDiv.textContent = `Reserved in ${Math.floor(totalSec/60)}m ${totalSec%60}s`;
-    }
+    slotDiv.style.background="orange";
+    slotDiv.textContent="BOOKED - "+(data.name||"");
+    if(arrMin && nowMin<arrMin) countdownDiv.textContent = "Booking starts in "+(arrMin-nowMin)+" min";
   } else if(state==="occupied"){
-    statusDiv.className="slot-status occupied";
-    statusDiv.textContent="OCCUPIED - "+(data.name||"");
-    if(leaveMin!=-1 && nowMin<leaveMin){
-      const totalSec = (leaveMin-nowMin-1)*60 + (60-nowSec);
-      countdownDiv.textContent = `Leaving in ${Math.floor(totalSec/60)}m ${totalSec%60}s`;
-    }
+    slotDiv.style.background="red";
+    slotDiv.textContent="OCCUPIED - "+(data.name||"");
+    if(leaveMin && nowMin<leaveMin) countdownDiv.textContent = "Leaving in "+(leaveMin-nowMin)+" min";
   }
 }
 
 // Booking form
-document.getElementById("bookingForm").addEventListener("submit", async e=>{
+document.getElementById("bookingForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const payload = {
     state:"booked",
-    name: document.getElementById("name").value,
-    arrivalTime: document.getElementById("arrival").value,
-    leaveTime: document.getElementById("leave").value
+    name:document.getElementById("name").value,
+    arrivalTime:document.getElementById("arrival").value,
+    leaveTime:document.getElementById("leave").value
   };
-  await writeState("booked", payload);
+  await fetch(firebaseURL,{
+    method:"PUT",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
   loadStatus();
 });
 
-// Cancel button
-document.getElementById("cancelBtn").addEventListener("click", async ()=>{
+// Cancel booking
+document.getElementById("cancelBtn").addEventListener("click",async ()=>{
   await writeState("free");
   loadStatus();
 });
 
-// Auto refresh
-setInterval(loadStatus, 1000);
+// Refresh every 2s
+setInterval(loadStatus,2000);
 loadStatus();
 </script>
 </body>
