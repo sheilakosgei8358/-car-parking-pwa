@@ -4,20 +4,19 @@
 <meta charset="UTF-8">
 <title>Smart Parking System</title>
 <style>
-  body { font-family: Arial; text-align: center; padding: 20px; background: #f4f4f4; }
+  body { font-family: Arial, sans-serif; background: #f4f4f4; text-align:center; padding:20px; }
   h1 { margin-bottom: 20px; }
-  #slotStatus { width: 250px; margin: 20px auto; padding: 20px; border-radius: 12px; color: white; font-weight: bold; }
-  #countdown { font-size: 14px; margin-top: 8px; color: black; font-weight: normal; }
-  .form-box { margin: 20px auto; padding: 15px; background: white; border-radius: 12px; width: 270px; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+  #slotStatus { width: 240px; margin: 20px auto; padding: 20px; border-radius: 12px; color:white; font-weight:bold; }
+  #countdown { font-size: 14px; margin-top: 8px; color:black; font-weight:normal; }
+  .form-box { margin: 20px auto; padding: 15px; background:white; border-radius:12px; width: 260px; box-shadow:0 0 5px rgba(0,0,0,0.2);}
   label { display:block; margin-top:10px; }
-  input { width: 90%; padding:5px; margin-top:4px; }
+  input { width:90%; padding:5px; margin-top:4px; }
   button { margin-top:15px; padding:8px 14px; border:none; border-radius:6px; background:#0077cc; color:white; cursor:pointer; }
   button:hover { background:#005fa3; }
   #cancelBtn { background:red; margin-top:5px; }
 </style>
 </head>
 <body>
-
 <h1>Smart Parking System</h1>
 <div id="slotStatus">Loading...</div>
 <div id="countdown"></div>
@@ -46,23 +45,23 @@ function toMinutes(hhmm){
   return h*60 + m;
 }
 
-// Write data to Firebase
-async function writeState(state, data={}){
+// Write state to Firebase
+async function writeState(state, data={}) {
   const payload = {
     state: state,
     name: data.name || "",
     arrivalTime: data.arrivalTime || "",
     leaveTime: data.leaveTime || ""
   };
-  await fetch(firebaseURL,{
-    method:"PUT",
-    headers: {"Content-Type":"application/json"},
+  await fetch(firebaseURL, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
 }
 
-// Load slot status
-async function loadStatus(){
+// Load status and manage countdown
+async function loadStatus() {
   const res = await fetch(firebaseURL);
   const data = await res.json();
   const statusDiv = document.getElementById("slotStatus");
@@ -74,36 +73,55 @@ async function loadStatus(){
   let state = data.state;
   const now = new Date();
   const nowMin = now.getHours()*60 + now.getMinutes();
-  const arrMin = toMinutes(data.arrivalTime);
-  const leaveMin = toMinutes(data.leaveTime);
+  const nowSec = now.getSeconds();
+  const arrMin = toMinutes(data.arrivalTime || "");
+  const leaveMin = toMinutes(data.leaveTime || "");
 
-  // Booking logic
-  if(state==="booked" && arrMin){
-    if(nowMin >= arrMin && leaveMin && nowMin < leaveMin) state="reserved";
-    else if(nowMin > arrMin + 1) state="free"; // expired
+  // Booking logic: wait 1 min for booked car
+  if(state === "booked" && arrMin){
+    if(nowMin === arrMin){
+      if(nowSec < 60){
+        countdownDiv.textContent = "Waiting for car... " + (60 - nowSec) + "s left";
+      } else {
+        state = "free"; 
+        await writeState("free");
+      }
+    } else if(nowMin > arrMin){
+      state = "free"; 
+      await writeState("free");
+    }
   }
-  if((state==="reserved" || state==="occupied") && leaveMin && nowMin >= leaveMin) state="free";
+
+  // Occupied logic: release slot after leaveTime
+  if(state === "occupied" && leaveMin && nowMin >= leaveMin){
+    state = "free";
+    await writeState("free");
+  }
 
   // Display
-  if(state==="free"){ statusDiv.style.background="green"; statusDiv.textContent="FREE"; }
-  else if(state==="booked"){ statusDiv.style.background="orange"; statusDiv.textContent="BOOKED - "+(data.name||""); }
-  else if(state==="reserved"){ statusDiv.style.background="darkorange"; statusDiv.textContent="RESERVED - "+(data.name||""); }
-  else if(state==="occupied"){ statusDiv.style.background="red"; statusDiv.textContent="OCCUPIED - "+(data.name||""); }
-
-  // Countdown logic
-  if(state==="booked" && arrMin && nowMin < arrMin) countdownDiv.textContent="Gate opens in "+(arrMin-nowMin)+" min";
-  else if(state==="reserved" && leaveMin && nowMin < leaveMin) countdownDiv.textContent="Car leaving in "+(leaveMin-nowMin)+" min";
-  else if(state==="occupied" && leaveMin && nowMin < leaveMin) countdownDiv.textContent="Car is parked, leaving in "+(leaveMin-nowMin)+" min";
+  if(state === "free"){
+    statusDiv.style.background = "green";
+    statusDiv.textContent = "FREE";
+  } else if(state === "booked"){
+    statusDiv.style.background = "orange";
+    statusDiv.textContent = "BOOKED - " + (data.name || "");
+  } else if(state === "occupied"){
+    statusDiv.style.background = "red";
+    statusDiv.textContent = "OCCUPIED - " + (data.name || "");
+    if(leaveMin && nowMin < leaveMin){
+      countdownDiv.textContent = "Leaving in " + (leaveMin - nowMin) + " min";
+    }
+  }
 }
 
 // Booking form submit
 document.getElementById("bookingForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const payload = {
-    state:"booked",
-    name:document.getElementById("name").value,
-    arrivalTime:document.getElementById("arrival").value,
-    leaveTime:document.getElementById("leave").value
+    state: "booked",
+    name: document.getElementById("name").value,
+    arrivalTime: document.getElementById("arrival").value,
+    leaveTime: document.getElementById("leave").value
   };
   await writeState("booked", payload);
   loadStatus();
@@ -115,8 +133,8 @@ document.getElementById("cancelBtn").addEventListener("click", async ()=>{
   loadStatus();
 });
 
-// Auto-refresh
-setInterval(loadStatus, 2000);
+// Auto-refresh every second
+setInterval(loadStatus, 1000);
 loadStatus();
 </script>
 </body>
