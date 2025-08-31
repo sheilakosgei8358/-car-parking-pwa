@@ -1,72 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Parking System</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 { margin-bottom: 20px; }
-    #slotStatus {
-      width: 240px;
-      margin: 20px auto;
-      padding: 20px;
-      border-radius: 12px;
-      color: white;
-      font-weight: bold;
-    }
-    #countdown {
-      font-size: 14px;
-      margin-top: 8px;
-      color: black;
-      font-weight: normal;
-    }
-    .form-box {
-      margin: 20px auto;
-      padding: 15px;
-      background: white;
-      border-radius: 12px;
-      width: 260px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.2);
-    }
-    label { display: block; margin-top: 10px; }
-    input { width: 90%; padding: 5px; margin-top: 4px; }
-    button {
-      margin-top: 15px;
-      padding: 8px 14px;
-      border: none;
-      border-radius: 6px;
-      background: #0077cc;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover { background: #005fa3; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Parking System</title>
+<style>
+  body { font-family: Arial; text-align:center; padding:20px; background:#f4f4f4; }
+  h1 { margin-bottom:20px; }
+  #slotStatus { width:240px; margin:20px auto; padding:20px; border-radius:12px; color:white; font-weight:bold; }
+  #countdown { font-size:14px; margin-top:8px; color:black; }
+  .form-box { margin:20px auto; padding:15px; background:white; border-radius:12px; width:260px; box-shadow:0 0 5px rgba(0,0,0,0.2); }
+  label { display:block; margin-top:10px; }
+  input { width:90%; padding:5px; margin-top:4px; }
+  button { margin-top:15px; padding:8px 14px; border:none; border-radius:6px; background:#0077cc; color:white; cursor:pointer; }
+  button:hover { background:#005fa3; }
+</style>
 </head>
 <body>
-  <h1>Smart Parking System</h1>
-  <div id="slotStatus">Loading...</div>
-  <div id="countdown"></div>
+<h1>Smart Parking System</h1>
+<div id="slotStatus">Loading...</div>
+<div id="countdown"></div>
 
-  <div class="form-box">
-    <form id="bookingForm">
-      <label>Name:</label>
-      <input type="text" id="name" required>
-      <label>Arrival Time (HH:MM):</label>
-      <input type="time" id="arrival" required>
-      <label>Leave Time (HH:MM):</label>
-      <input type="time" id="leave" required>
-      <button type="submit">Book Slot</button>
-    </form>
-    <button id="cancelBtn" style="background:red;">Cancel Booking</button>
-  </div>
+<div class="form-box">
+  <form id="bookingForm">
+    <label>Name:</label>
+    <input type="text" id="name" required>
+    <label>Arrival Time (HH:MM):</label>
+    <input type="time" id="arrival" required>
+    <label>Leave Time (HH:MM):</label>
+    <input type="time" id="leave" required>
+    <button type="submit">Book Slot</button>
+  </form>
+  <button id="cancelBtn" style="background:red;">Cancel Booking</button>
+</div>
 
 <script>
-const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/S1.json";
+// Firebase node (match ESP32)
+const firebaseURL = "https://your-project-id.firebaseio.com/parking.json";
 
 // Convert HH:MM to minutes
 function toMinutes(hhmm){
@@ -86,88 +56,58 @@ async function writeState(state, data={}){
   };
   await fetch(firebaseURL, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify(payload)
   });
 }
 
-// Load and manage status
+// Load status and countdown
 async function loadStatus(){
-  const res = await fetch(firebaseURL);
-  const data = await res.json();
-  const statusDiv = document.getElementById("slotStatus");
-  const countdownDiv = document.getElementById("countdown");
-  countdownDiv.textContent = "";
+  try {
+    const res = await fetch(firebaseURL);
+    const data = await res.json();
+    const statusDiv = document.getElementById("slotStatus");
+    const countdownDiv = document.getElementById("countdown");
+    countdownDiv.textContent = "";
 
-  if(!data){ return; }
+    if(!data) return;
 
-  let state = data.state;
-  const now = new Date();
-  const nowHM = now.getHours().toString().padStart(2,"0") + ":" + now.getMinutes().toString().padStart(2,"0");
-  const nowMin = toMinutes(nowHM);
-  const arrMin = toMinutes(data.arrivalTime || "");
-  const leaveMin = toMinutes(data.leaveTime || "");
+    let state = data.state;
+    const now = new Date();
+    const nowMin = now.getHours()*60 + now.getMinutes();
+    const arrMin = toMinutes(data.arrivalTime);
+    const leaveMin = toMinutes(data.leaveTime);
 
-  // Booking transitions
-  if(state === "booked" && arrMin){
-    if(nowMin >= (arrMin - 15) && nowMin < arrMin){
-      state = "reserved";
-      await writeState("reserved", data);
+    // Booking / reserved transitions
+    if(state === "booked" && arrMin){
+      if(nowMin >= arrMin) state = "reserved";
+      else if(nowMin > arrMin + 1) state = "free";
     }
-    else if(nowMin > arrMin + 1){ // expired
+    if((state === "booked" || state === "reserved") && leaveMin && nowMin >= leaveMin){
       state = "free";
       await writeState("free");
     }
-  }
-  if((state === "booked" || state === "reserved" || state === "occupied") && leaveMin && nowMin >= leaveMin){
-    state = "free";
-    await writeState("free");
-  }
 
-  // Display colors + countdown
-  if(state === "free"){
-    statusDiv.style.background = "green";
-    statusDiv.textContent = "FREE";
-  }
-  else if(state === "booked"){
-    statusDiv.style.background = "orange";
-    statusDiv.textContent = "BOOKED - " + (data.name || "");
-    if(arrMin && nowMin < (arrMin - 15)){
-      const minsLeft = (arrMin - 15) - nowMin;
-      countdownDiv.textContent = "Reserved period starts in " + minsLeft + " min";
-    }
-  }
-  else if(state === "reserved"){
-    statusDiv.style.background = "darkorange";
-    statusDiv.textContent = "RESERVED - " + (data.name || "");
-    if(arrMin && nowMin < arrMin){
-      const minsLeft = arrMin - nowMin;
-      countdownDiv.textContent = "Booking valid for " + minsLeft + " min";
-    }
-  }
-  else if(state === "occupied"){
-    statusDiv.style.background = "red";
-    statusDiv.textContent = "OCCUPIED - " + (data.name || "");
-    if(leaveMin && nowMin < leaveMin){
-      const minsLeft = leaveMin - nowMin;
-      countdownDiv.textContent = "Leaving in " + minsLeft + " min";
-    }
+    // Live occupancy overrides
+    if(data.state === "occupied") state = "occupied";
+
+    // Display
+    if(state === "free") { statusDiv.style.background="green"; statusDiv.textContent="FREE"; }
+    else if(state === "booked") { statusDiv.style.background="orange"; statusDiv.textContent="BOOKED - "+(data.name||""); }
+    else if(state === "reserved") { statusDiv.style.background="darkorange"; statusDiv.textContent="RESERVED - "+(data.name||""); }
+    else if(state === "occupied") { statusDiv.style.background="red"; statusDiv.textContent="OCCUPIED - "+(data.name||""); }
+  } catch(err){
+    console.error("Error fetching Firebase:", err);
   }
 }
 
 // Booking form
 document.getElementById("bookingForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  const payload = {
-    state: "booked",
+  await writeState("booked", {
     name: document.getElementById("name").value,
     arrivalTime: document.getElementById("arrival").value,
     leaveTime: document.getElementById("leave").value
-  };
-  await fetch(firebaseURL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
   });
   loadStatus();
 });
@@ -178,7 +118,7 @@ document.getElementById("cancelBtn").addEventListener("click", async ()=>{
   loadStatus();
 });
 
-// Auto-refresh
+// Auto-refresh every 2s
 setInterval(loadStatus, 2000);
 loadStatus();
 </script>
