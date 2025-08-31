@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Parking System</title>
-  <style>
-    body { font-family: Arial; text-align: center; padding: 20px; background: #f4f4f4; }
-    h1 { margin-bottom: 20px; }
-    #slotStatus { width: 250px; margin: 20px auto; padding: 20px; border-radius: 12px; color: white; font-weight: bold; }
-    #countdown { font-size: 14px; margin-top: 8px; color: black; font-weight: normal; }
-    .form-box { margin: 20px auto; padding: 15px; background: white; border-radius: 12px; width: 270px; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
-    label { display:block; margin-top:10px; }
-    input { width: 90%; padding:5px; margin-top:4px; }
-    button { margin-top:15px; padding:8px 14px; border:none; border-radius:6px; background:#0077cc; color:white; cursor:pointer; }
-    button:hover { background:#005fa3; }
-    #cancelBtn { background:red; margin-top:5px; }
-  </style>
+<meta charset="UTF-8">
+<title>Smart Parking System</title>
+<style>
+  body { font-family: Arial; text-align: center; padding: 20px; background: #f4f4f4; }
+  h1 { margin-bottom: 20px; }
+  #slotStatus { width: 250px; margin: 20px auto; padding: 20px; border-radius: 12px; color: white; font-weight: bold; }
+  #countdown { font-size: 14px; margin-top: 8px; color: black; font-weight: normal; }
+  .form-box { margin: 20px auto; padding: 15px; background: white; border-radius: 12px; width: 270px; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+  label { display:block; margin-top:10px; }
+  input { width: 90%; padding:5px; margin-top:4px; }
+  button { margin-top:15px; padding:8px 14px; border:none; border-radius:6px; background:#0077cc; color:white; cursor:pointer; }
+  button:hover { background:#005fa3; }
+  #cancelBtn { background:red; margin-top:5px; }
+</style>
 </head>
 <body>
 
@@ -47,16 +47,16 @@ function toMinutes(hhmm){
 }
 
 // Write data to Firebase
-async function writeState(state, data={}) {
+async function writeState(state, data={}){
   const payload = {
     state: state,
     name: data.name || "",
     arrivalTime: data.arrivalTime || "",
     leaveTime: data.leaveTime || ""
   };
-  await fetch(firebaseURL, {
+  await fetch(firebaseURL,{
     method:"PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify(payload)
   });
 }
@@ -78,8 +78,8 @@ async function loadStatus(){
   const leaveMin = toMinutes(data.leaveTime);
 
   // Booking logic
-  if(state==="booked" && arrMin) {
-    if(nowMin >= arrMin && leaveMin && nowMin < leaveMin) state = "reserved";
+  if(state==="booked" && arrMin){
+    if(nowMin >= arrMin && leaveMin && nowMin < leaveMin) state="reserved";
     else if(nowMin > arrMin + 1) state="free"; // expired
   }
   if((state==="reserved" || state==="occupied") && leaveMin && nowMin >= leaveMin) state="free";
@@ -90,9 +90,10 @@ async function loadStatus(){
   else if(state==="reserved"){ statusDiv.style.background="darkorange"; statusDiv.textContent="RESERVED - "+(data.name||""); }
   else if(state==="occupied"){ statusDiv.style.background="red"; statusDiv.textContent="OCCUPIED - "+(data.name||""); }
 
-  // Countdown
-  if(state==="booked" && arrMin && nowMin < arrMin) countdownDiv.textContent="Booking starts in "+(arrMin-nowMin)+" min";
-  else if(state==="reserved" && leaveMin && nowMin < leaveMin) countdownDiv.textContent="Leaving in "+(leaveMin-nowMin)+" min";
+  // Countdown logic
+  if(state==="booked" && arrMin && nowMin < arrMin) countdownDiv.textContent="Gate opens in "+(arrMin-nowMin)+" min";
+  else if(state==="reserved" && leaveMin && nowMin < leaveMin) countdownDiv.textContent="Car leaving in "+(leaveMin-nowMin)+" min";
+  else if(state==="occupied" && leaveMin && nowMin < leaveMin) countdownDiv.textContent="Car is parked, leaving in "+(leaveMin-nowMin)+" min";
 }
 
 // Booking form submit
@@ -108,7 +109,7 @@ document.getElementById("bookingForm").addEventListener("submit", async e=>{
   loadStatus();
 });
 
-// Cancel button
+// Cancel booking
 document.getElementById("cancelBtn").addEventListener("click", async ()=>{
   await writeState("free");
   loadStatus();
@@ -118,6 +119,5 @@ document.getElementById("cancelBtn").addEventListener("click", async ()=>{
 setInterval(loadStatus, 2000);
 loadStatus();
 </script>
-
 </body>
 </html>
