@@ -2,22 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Smart Parking System</title>
 <style>
-  body { font-family: Arial; text-align:center; padding:20px; background:#f4f4f4; }
-  h1 { margin-bottom:20px; }
-  #slotStatus { width:240px; margin:20px auto; padding:20px; border-radius:12px; color:white; font-weight:bold; }
-  #countdown { font-size:14px; margin-top:8px; color:black; }
-  .form-box { margin:20px auto; padding:15px; background:white; border-radius:12px; width:260px; box-shadow:0 0 5px rgba(0,0,0,0.2); }
-  label { display:block; margin-top:10px; }
-  input { width:90%; padding:5px; margin-top:4px; }
-  button { margin-top:15px; padding:8px 14px; border:none; border-radius:6px; background:#0077cc; color:white; cursor:pointer; }
-  button:hover { background:#005fa3; }
+  body { font-family: Arial; background: #f4f4f4; text-align: center; padding: 30px; }
+  h1 { margin-bottom: 20px; }
+  #slotStatus {
+    width: 300px; margin: 20px auto; padding: 25px; border-radius: 12px;
+    color: white; font-weight: bold; font-size: 1.3em;
+  }
+  #countdown { font-size: 14px; margin-top: 8px; color: black; }
+  .form-box { margin: 20px auto; padding: 20px; background: white; border-radius: 12px; width: 320px; box-shadow: 0 0 8px rgba(0,0,0,0.2); }
+  label { display: block; margin-top: 10px; }
+  input { width: 90%; padding: 6px; margin-top: 4px; }
+  button { margin-top: 15px; padding: 10px 16px; border: none; border-radius: 6px; background: #0077cc; color: white; cursor: pointer; }
+  button:hover { background: #005fa3; }
 </style>
 </head>
 <body>
-<h1>Smart Parking System</h1>
+<h1>Smart Parking — Slot S1</h1>
 <div id="slotStatus">Loading...</div>
 <div id="countdown"></div>
 
@@ -35,8 +37,7 @@
 </div>
 
 <script>
-// Firebase node (match ESP32)
-const firebaseURL = "https://your-project-id.firebaseio.com/parking.json";
+const firebaseURL = "https://smartparkingsystem-55a05-default-rtdb.firebaseio.com/parking.json";
 
 // Convert HH:MM to minutes
 function toMinutes(hhmm){
@@ -56,58 +57,68 @@ async function writeState(state, data={}){
   };
   await fetch(firebaseURL, {
     method: "PUT",
-    headers: {"Content-Type":"application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
 }
 
-// Load status and countdown
+// Load slot status
 async function loadStatus(){
-  try {
-    const res = await fetch(firebaseURL);
-    const data = await res.json();
-    const statusDiv = document.getElementById("slotStatus");
-    const countdownDiv = document.getElementById("countdown");
-    countdownDiv.textContent = "";
+  const res = await fetch(firebaseURL);
+  const data = await res.json();
+  const statusDiv = document.getElementById("slotStatus");
+  const countdownDiv = document.getElementById("countdown");
+  countdownDiv.textContent = "";
 
-    if(!data) return;
+  if(!data){ return; }
 
-    let state = data.state;
-    const now = new Date();
-    const nowMin = now.getHours()*60 + now.getMinutes();
-    const arrMin = toMinutes(data.arrivalTime);
-    const leaveMin = toMinutes(data.leaveTime);
+  let state = data.state;
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const arrMin = toMinutes(data.arrivalTime || "");
+  const leaveMin = toMinutes(data.leaveTime || "");
 
-    // Booking / reserved transitions
-    if(state === "booked" && arrMin){
-      if(nowMin >= arrMin) state = "reserved";
-      else if(nowMin > arrMin + 1) state = "free";
+  // Booking logic
+  if(state === "booked" && arrMin){
+    if(nowMin >= arrMin && nowMin < leaveMin){
+      state = "occupied";
+      await writeState("occupied", data);
     }
-    if((state === "booked" || state === "reserved") && leaveMin && nowMin >= leaveMin){
+    else if(nowMin >= leaveMin){
       state = "free";
       await writeState("free");
     }
+  }
 
-    // Live occupancy overrides
-    if(data.state === "occupied") state = "occupied";
-
-    // Display
-    if(state === "free") { statusDiv.style.background="green"; statusDiv.textContent="FREE"; }
-    else if(state === "booked") { statusDiv.style.background="orange"; statusDiv.textContent="BOOKED - "+(data.name||""); }
-    else if(state === "reserved") { statusDiv.style.background="darkorange"; statusDiv.textContent="RESERVED - "+(data.name||""); }
-    else if(state === "occupied") { statusDiv.style.background="red"; statusDiv.textContent="OCCUPIED - "+(data.name||""); }
-  } catch(err){
-    console.error("Error fetching Firebase:", err);
+  // Display slot status
+  if(state === "free"){
+    statusDiv.style.background = "green";
+    statusDiv.textContent = "FREE";
+  } else if(state === "booked"){
+    statusDiv.style.background = "orange";
+    statusDiv.textContent = "BOOKED - " + (data.name || "");
+  } else if(state === "occupied"){
+    statusDiv.style.background = "red";
+    statusDiv.textContent = "OCCUPIED - " + (data.name || "");
+    if(leaveMin && nowMin < leaveMin){
+      countdownDiv.textContent = "Leaving in " + (leaveMin - nowMin) + " min";
+    }
   }
 }
 
 // Booking form
 document.getElementById("bookingForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  await writeState("booked", {
+  const payload = {
+    state: "booked",
     name: document.getElementById("name").value,
     arrivalTime: document.getElementById("arrival").value,
     leaveTime: document.getElementById("leave").value
+  };
+  await fetch(firebaseURL, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
   });
   loadStatus();
 });
@@ -118,7 +129,7 @@ document.getElementById("cancelBtn").addEventListener("click", async ()=>{
   loadStatus();
 });
 
-// Auto-refresh every 2s
+// Auto-refresh every 2 sec
 setInterval(loadStatus, 2000);
 loadStatus();
 </script>
